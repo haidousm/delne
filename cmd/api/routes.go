@@ -14,6 +14,7 @@ func (app *application) routes() http.Handler {
 	})
 
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.health)
+	router.HandlerFunc(http.MethodGet, "/proxy/*host", app.proxy.ProxyRequest)
 
 	standardMiddleware := alice.New(app.recoverPanic, app.logRequest, app.secureHeaders)
 	return standardMiddleware.Then(router)

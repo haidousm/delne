@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/httputil"
 	"os"
 	"time"
 
+	"github.com/haidousm/delne/cmd/proxy"
 	"github.com/haidousm/delne/internal/vcs"
 )
 
@@ -20,6 +22,7 @@ type config struct {
 type application struct {
 	config config
 	logger *slog.Logger
+	proxy  *proxy.Proxy
 }
 
 var (
@@ -45,6 +48,12 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
+		proxy: &proxy.Proxy{
+			Target: map[string]string{
+				"localhost:4000/proxy/goog": "http://localhost:8080",
+			},
+			RevProxy: make(map[string]*httputil.ReverseProxy),
+		},
 	}
 
 	srv := &http.Server{
