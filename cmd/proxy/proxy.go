@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -14,7 +13,8 @@ type Proxy struct {
 }
 
 func (p *Proxy) ProxyRequest(w http.ResponseWriter, r *http.Request) {
-	host := fmt.Sprintf("%s%s", r.Host, r.URL.Path)
+	host := r.Host
+
 	// if we already have a rev proxy for this host setup
 	if rev, ok := p.RevProxy[host]; ok {
 		rev.ServeHTTP(w, r)

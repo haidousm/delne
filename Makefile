@@ -7,16 +7,16 @@ help:
 confirm:
 	@echo -n 'Are you sure? [y/N] ' && read ans && [ $${ans:-N} = y ]
 
-## dev/api: run the cmd/api application in dev mode (with air)
-.PHONY: dev/api
-dev/api:
+## dev/web: run the cmd/web application in dev mode (with air)
+.PHONY: dev/web
+dev/web:
 	air -c .air.toml
 
-## build/api: build the cmd/api application
-.PHONY: build/api
-build/api:
-	@echo 'Building cmd/api...'
-	go build -ldflags='-s -w' -o=./bin/api ./cmd/api
+## build/web: build the cmd/web application
+.PHONY: build/web
+build/web:
+	@echo 'Building cmd/web...'
+	go build -ldflags='-s -w' -o=./bin/web ./cmd/web
 
 ## audit: tidy dependencies and format, vet and test all code
 .PHONY: audit
