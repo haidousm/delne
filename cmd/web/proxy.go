@@ -39,6 +39,13 @@ func (app *application) proxyRequest(w http.ResponseWriter, r *http.Request) {
 	app.serverError(w, r, err)
 }
 
+func (app *application) listProxies(w http.ResponseWriter, r *http.Request) {
+	p := app.proxy
+	for host, target := range p.Target {
+		w.Write([]byte(host + " -> " + target + "\n"))
+	}
+}
+
 func (app *application) registerProxy(w http.ResponseWriter, r *http.Request) {
 	p := app.proxy
 

@@ -14,6 +14,8 @@ func (app *application) routes() http.Handler {
 	})
 
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.health)
+
+	router.HandlerFunc(http.MethodGet, "/v1/proxies", app.listProxies)
 	router.HandlerFunc(http.MethodPost, "/v1/proxies/register", app.registerProxy)
 
 	router.HandlerFunc(http.MethodGet, "/", app.proxyRequest)
