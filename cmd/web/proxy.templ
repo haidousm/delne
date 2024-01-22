@@ -1,0 +1,20 @@
+package main
+
+templ ProxyTable(proxy Proxy) {
+	<table>
+		<thead>
+			<tr>
+				<th>Host</th>
+				<th>Target</th>
+			</tr>
+		</thead>
+		<tbody>
+			for host, target := range proxy.Target {
+				<tr>
+					<td>{ host }</td>
+					<td>{ target }</td>
+				</tr>
+			}
+		</tbody>
+	</table>
+}
