@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 type Proxy struct {
@@ -65,4 +67,15 @@ func (app *application) registerProxy(w http.ResponseWriter, r *http.Request) {
 	p.Target[host] = target
 
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (app *application) editProxyForm(w http.ResponseWriter, r *http.Request) {
+
+	params := httprouter.ParamsFromContext(r.Context())
+
+	host := params.ByName("host")
+	target := app.proxy.Target[host]
+
+	component := editProxyForm(host, target)
+	component.Render(r.Context(), w)
 }

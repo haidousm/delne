@@ -1,5 +1,7 @@
 package main
 
+import "fmt"
+
 templ header(title string) {
 	<header>
 		<div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -73,11 +75,11 @@ templ proxyTable(proxy Proxy) {
 							</thead>
 							<tbody class="divide-y divide-gray-200 bg-white">
 								for host, target := range(proxy.Target) {
-									<tr>
+									<tr hx-target="this" hx-swap="outerHTML">
 										<td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">{ host }</td>
 										<td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500">{ target }</td>
 										<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-											<a href="#" class="text-indigo-600 hover:text-indigo-900">Edit<span class="sr-only">, { host }</span></a>
+											<a href={ templ.SafeURL(fmt.Sprintf("/ui/proxies/%s/edit", host)) } class="text-indigo-600 hover:text-indigo-900" hx-boost="true">Edit</a>
 										</td>
 									</tr>
 								}
@@ -90,11 +92,23 @@ templ proxyTable(proxy Proxy) {
 	</div>
 }
 
+templ editProxyForm(host string, target string) {
+	<tr>
+		<td class="whitespace-nowrap text-sm font-medium text-gray-900 sm:pl-6"><input type="text" name="host" class="rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" value={ host }/></td>
+		<td class="whitespace-nowrap text-sm text-gray-500"><input type="text" name="target" class="rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" value={ target }/></td>
+		<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+			<a href="/ui/proxies" class="text-gray-600 hover:text-gray-900 mr-4" hx-boost="true">Cancel</a>
+			<a href="/ui/proxies" class="text-indigo-600 hover:text-indigo-900" hx-boost="true">Save</a>
+		</td>
+	</tr>
+}
+
 templ ProxyPage(proxy Proxy) {
 	<html class="h-full">
 		<head>
 			<title>Delne</title>
 			<script src="https://cdn.tailwindcss.com"></script>
+			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
 		</head>
 		<body class="h-full">
 			<div class="min-h-full">
