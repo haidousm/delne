@@ -9,7 +9,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/haidousm/delne/cmd/proxy"
 	"github.com/haidousm/delne/internal/vcs"
 )
 
@@ -22,7 +21,7 @@ type config struct {
 type application struct {
 	config config
 	logger *slog.Logger
-	proxy  *proxy.Proxy
+	proxy  *Proxy
 }
 
 var (
@@ -48,7 +47,7 @@ func main() {
 	app := &application{
 		config: cfg,
 		logger: logger,
-		proxy: &proxy.Proxy{
+		proxy: &Proxy{
 			Target: map[string]string{
 				"foo.com": "http://localhost:8080",
 			},

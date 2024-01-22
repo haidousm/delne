@@ -1,4 +1,4 @@
-package proxy
+package main
 
 import (
 	"errors"
@@ -12,9 +12,10 @@ type Proxy struct {
 	RevProxy map[string]*httputil.ReverseProxy
 }
 
-func (p *Proxy) ProxyRequest(w http.ResponseWriter, r *http.Request) {
-	host := r.Host
+func (app *application) ProxyRequest(w http.ResponseWriter, r *http.Request) {
+	p := app.proxy
 
+	host := r.Host
 	// if we already have a rev proxy for this host setup
 	if rev, ok := p.RevProxy[host]; ok {
 		rev.ServeHTTP(w, r)
