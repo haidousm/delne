@@ -28,6 +28,7 @@ func (app *application) routes() http.Handler {
 	component := ProxyPage(*app.proxy)
 	router.Handler(http.MethodGet, "/admin/proxies", templ.Handler(component))
 	router.HandlerFunc(http.MethodGet, "/admin/proxies/:host/edit", app.editProxyForm)
+	router.HandlerFunc(http.MethodGet, "/admin/proxy/new", app.createProxyForm)
 
 	standardMiddleware := alice.New(app.recoverPanic, app.logRequest) // app.secureHeaders
 	return standardMiddleware.Then(router)
