@@ -134,7 +134,7 @@ func navbar(items []string, current string) templ.Component {
 	})
 }
 
-func proxyTable(proxy Proxy) templ.Component {
+func proxyTable(proxy Proxy, showForm bool) templ.Component {
 	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)
 		if !templ_7745c5c3_IsBuffer {
@@ -147,7 +147,7 @@ func proxyTable(proxy Proxy) templ.Component {
 			templ_7745c5c3_Var8 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div class=\"px-4 sm:px-6 lg:px-8\"><div class=\"sm:flex sm:items-center\"><div class=\"sm:flex-auto\"><h1 class=\"text-base font-semibold leading-6 text-gray-900\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<div id=\"proxy-table\"><div class=\"px-4 sm:px-6 lg:px-8\"><div class=\"sm:flex sm:items-center\"><div class=\"sm:flex-auto\"><h1 class=\"text-base font-semibold leading-6 text-gray-900\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -156,7 +156,7 @@ func proxyTable(proxy Proxy) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</h1></div><div class=\"mt-4 sm:ml-16 sm:mt-0 sm:flex-none\"><button type=\"button\" class=\"block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</h1></div><div class=\"mt-4 sm:ml-16 sm:mt-0 sm:flex-none\"><button type=\"button\" class=\"block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600\" hx-get=\"/admin/proxy/new\" hx-target=\"#proxy-table\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -196,13 +196,19 @@ func proxyTable(proxy Proxy) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
+		if showForm {
+			templ_7745c5c3_Err = createProxyForm().Render(ctx, templ_7745c5c3_Buffer)
+			if templ_7745c5c3_Err != nil {
+				return templ_7745c5c3_Err
+			}
+		}
 		for host, target := range proxy.Target {
 			templ_7745c5c3_Err = proxyTableRow(host, target).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</tbody></table></div></div></div></div></div>")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</tbody></table></div></div></div></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -233,7 +239,7 @@ func proxyTableRow(host string, target string) templ.Component {
 		var templ_7745c5c3_Var15 string
 		templ_7745c5c3_Var15, templ_7745c5c3_Err = templ.JoinStringErrs(host)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/proxy.templ`, Line: 90, Col: 105}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/proxy.templ`, Line: 95, Col: 105}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var15))
 		if templ_7745c5c3_Err != nil {
@@ -246,7 +252,7 @@ func proxyTableRow(host string, target string) templ.Component {
 		var templ_7745c5c3_Var16 string
 		templ_7745c5c3_Var16, templ_7745c5c3_Err = templ.JoinStringErrs(target)
 		if templ_7745c5c3_Err != nil {
-			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/proxy.templ`, Line: 91, Col: 82}
+			return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/proxy.templ`, Line: 96, Col: 82}
 		}
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var16))
 		if templ_7745c5c3_Err != nil {
@@ -294,7 +300,7 @@ func editProxyForm(host string, target string) templ.Component {
 			templ_7745c5c3_Var19 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<tr hx-target=\"this\" hx-swap=\"outerHTML\" hx-replace-url=\"/admin/proxies\"><form><td class=\"whitespace-nowrap text-sm font-medium text-gray-900 sm:pl-6 w-[400px]\"><input type=\"text\" name=\"host\" class=\"rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6\" value=\"")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<tr id=\"edit-proxy-row\"><form><td class=\"whitespace-nowrap text-sm font-medium text-gray-900 sm:pl-6 w-[400px]\"><input type=\"text\" name=\"host\" class=\"rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -327,12 +333,54 @@ func editProxyForm(host string, target string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" hx-include=\"closest tr\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" hx-include=\"closest tr\" hx-target=\"#edit-proxy-row\" hx-swap=\"outerHTML\" hx-replace-url=\"/admin/proxies\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		templ_7745c5c3_Var21 := `Save`
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var21)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</button></td></form></tr>")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		if !templ_7745c5c3_IsBuffer {
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteTo(templ_7745c5c3_W)
+		}
+		return templ_7745c5c3_Err
+	})
+}
+
+func createProxyForm() templ.Component {
+	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
+		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)
+		if !templ_7745c5c3_IsBuffer {
+			templ_7745c5c3_Buffer = templ.GetBuffer()
+			defer templ.ReleaseBuffer(templ_7745c5c3_Buffer)
+		}
+		ctx = templ.InitializeContext(ctx)
+		templ_7745c5c3_Var22 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var22 == nil {
+			templ_7745c5c3_Var22 = templ.NopComponent
+		}
+		ctx = templ.ClearChildren(ctx)
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<tr id=\"create-proxy-row\"><form><td class=\"whitespace-nowrap text-sm font-medium text-gray-900 sm:pl-6 w-[400px]\"><input type=\"text\" name=\"host\" class=\"rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6\" placeholder=\"enter host e.g. foo.com\"></td><td class=\"whitespace-nowrap text-sm text-gray-500 w-[400px]\"><input type=\"text\" name=\"target\" class=\"rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6\" placeholder=\"enter target e.g. 192.168.86.56:1337\"></td><td class=\"relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6\"><a href=\"/admin/proxies\" class=\"text-gray-600 hover:text-gray-900 mr-4\" hx-boost=\"true\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var23 := `Cancel`
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var23)
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> <button class=\"text-indigo-600 hover:text-indigo-900\" hx-post=\"/v1/proxies\" hx-include=\"closest tr\" hx-target=\"#create-proxy-row\" hx-swap=\"outerHTML\" hx-replace-url=\"/admin/proxies\">")
+		if templ_7745c5c3_Err != nil {
+			return templ_7745c5c3_Err
+		}
+		templ_7745c5c3_Var24 := `Save`
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var24)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -355,17 +403,17 @@ func ProxyPage(proxy Proxy) templ.Component {
 			defer templ.ReleaseBuffer(templ_7745c5c3_Buffer)
 		}
 		ctx = templ.InitializeContext(ctx)
-		templ_7745c5c3_Var22 := templ.GetChildren(ctx)
-		if templ_7745c5c3_Var22 == nil {
-			templ_7745c5c3_Var22 = templ.NopComponent
+		templ_7745c5c3_Var25 := templ.GetChildren(ctx)
+		if templ_7745c5c3_Var25 == nil {
+			templ_7745c5c3_Var25 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
 		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<html class=\"h-full\"><head><title>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var23 := `Delne`
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var23)
+		templ_7745c5c3_Var26 := `Delne`
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var26)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -373,8 +421,8 @@ func ProxyPage(proxy Proxy) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var24 := ``
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var24)
+		templ_7745c5c3_Var27 := ``
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var27)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -382,8 +430,8 @@ func ProxyPage(proxy Proxy) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Var25 := ``
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var25)
+		templ_7745c5c3_Var28 := ``
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var28)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -399,7 +447,7 @@ func ProxyPage(proxy Proxy) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		templ_7745c5c3_Err = proxyTable(proxy).Render(ctx, templ_7745c5c3_Buffer)
+		templ_7745c5c3_Err = proxyTable(proxy, false).Render(ctx, templ_7745c5c3_Buffer)
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
