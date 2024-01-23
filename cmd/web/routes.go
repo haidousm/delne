@@ -22,11 +22,12 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.health)
 
 	router.HandlerFunc(http.MethodGet, "/v1/proxies", app.listProxies)
-	router.HandlerFunc(http.MethodPost, "/v1/proxies/register", app.registerProxy)
+	router.HandlerFunc(http.MethodPut, "/v1/proxies/:host", app.editProxy)
+	router.HandlerFunc(http.MethodPost, "/v1/proxies", app.registerProxy)
 
 	component := ProxyPage(*app.proxy)
-	router.Handler(http.MethodGet, "/ui/proxies", templ.Handler(component))
-	router.HandlerFunc(http.MethodGet, "/ui/proxies/:host/edit", app.editProxyForm)
+	router.Handler(http.MethodGet, "/admin/proxies", templ.Handler(component))
+	router.HandlerFunc(http.MethodGet, "/admin/proxies/:host/edit", app.editProxyForm)
 
 	standardMiddleware := alice.New(app.recoverPanic, app.logRequest) // app.secureHeaders
 	return standardMiddleware.Then(router)
