@@ -69,6 +69,32 @@ func (app *application) registerProxy(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+func (app *application) editProxy(w http.ResponseWriter, r *http.Request) {
+	p := app.proxy
+	params := httprouter.ParamsFromContext(r.Context())
+
+	if err := r.ParseForm(); err != nil {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	currentHost := params.ByName("host")
+
+	newHost := r.Form.Get("host")
+	target := r.Form.Get("target")
+
+	if newHost == "" || target == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	delete(p.Target, currentHost)
+	p.Target[newHost] = target
+
+	component := proxyTableRow(newHost, target)
+	component.Render(r.Context(), w)
+}
+
 func (app *application) editProxyForm(w http.ResponseWriter, r *http.Request) {
 
 	params := httprouter.ParamsFromContext(r.Context())
