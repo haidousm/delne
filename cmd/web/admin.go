@@ -8,7 +8,7 @@ import (
 	"github.com/justinas/alice"
 )
 
-func (app *application) routes() http.Handler {
+func (app *application) adminRoutes() http.Handler {
 	router := httprouter.New()
 	router.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		app.notFound(w)
@@ -17,13 +17,11 @@ func (app *application) routes() http.Handler {
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	router.Handler(http.MethodGet, "/static/*filepath", http.StripPrefix("/static", fileServer))
 
-	router.HandlerFunc(http.MethodGet, "/", app.proxyRequest)
+	router.HandlerFunc(http.MethodGet, "/admin/api/healthcheck", app.health)
 
-	router.HandlerFunc(http.MethodGet, "/v1/healthcheck", app.health)
-
-	router.HandlerFunc(http.MethodGet, "/v1/proxies", app.listProxies)
-	router.HandlerFunc(http.MethodPut, "/v1/proxies/:host", app.editProxy)
-	router.HandlerFunc(http.MethodPost, "/v1/proxies", app.registerProxy)
+	router.HandlerFunc(http.MethodGet, "/admin/api/proxies", app.listProxies)
+	router.HandlerFunc(http.MethodPut, "/admin/api/proxies/:host", app.editProxy)
+	router.HandlerFunc(http.MethodPost, "/admin/api/proxies", app.registerProxy)
 
 	component := ProxyPage(*app.proxy)
 	router.Handler(http.MethodGet, "/admin/proxies", templ.Handler(component))

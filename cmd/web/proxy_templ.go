@@ -329,7 +329,7 @@ func editProxyForm(host string, target string) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(fmt.Sprintf("/v1/proxies/%s", host)))
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(fmt.Sprintf("/admin/api/proxies/%s", host)))
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -375,7 +375,7 @@ func createProxyForm() templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> <button class=\"text-indigo-600 hover:text-indigo-900\" hx-post=\"/v1/proxies\" hx-include=\"closest tr\" hx-target=\"#create-proxy-row\" hx-swap=\"outerHTML\" hx-replace-url=\"/admin/proxies\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a> <button class=\"text-indigo-600 hover:text-indigo-900\" hx-post=\"/admin/api/proxies\" hx-include=\"closest tr\" hx-target=\"#create-proxy-row\" hx-swap=\"outerHTML\" hx-replace-url=\"/admin/proxies\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
