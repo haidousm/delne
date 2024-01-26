@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/haidousm/delne/internal/vcs"
+	"github.com/justinas/alice"
 )
 
 type config struct {
@@ -19,10 +20,9 @@ type config struct {
 }
 
 type application struct {
-	config       config
-	logger       *slog.Logger
-	proxy        *Proxy
-	adminHandler http.Handler
+	config config
+	logger *slog.Logger
+	proxy  *Proxy
 }
 
 var (
@@ -56,11 +56,15 @@ func main() {
 		},
 	}
 
-	app.adminHandler = app.adminRoutes()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/admin/", app.routes().ServeHTTP)
+	mux.HandleFunc("/", app.proxyRequest)
+
+	standardMiddleware := alice.New(app.recoverPanic, app.logRequest)
 
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.proxyRoutes(),
+		Handler:      standardMiddleware.Then(mux),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
