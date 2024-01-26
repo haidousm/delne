@@ -37,29 +37,41 @@ func (app *application) proxyRequest(w http.ResponseWriter, r *http.Request) {
 	p := app.proxy
 
 	host := r.Host
-	// if we already have a rev proxy for this host setup
-	if rev, ok := p.RevProxy[host]; ok {
-		app.logger.Debug("proxying request to existing rev proxy")
-		rev.ServeHTTP(w, r)
-		return
+	if r.URL.Path != "/" {
+		host += r.URL.Path
 	}
 
-	// otherwise, create one
-	if target, ok := p.Target[host]; ok {
-		app.logger.Debug("proxying request to new rev proxy")
-		remote, err := url.Parse(target)
-		if err != nil {
-			app.serverError(w, r, err)
-			return
+	// prefix matching
+	for k := range p.Target {
+		if len(k) > len(host) {
+			continue
 		}
+		if k == host[:len(k)] {
+			r.URL.Path = host[len(k):]
+			if rev, ok := p.RevProxy[k]; ok {
+				app.logger.Debug("proxying request to existing rev proxy")
+				rev.ServeHTTP(w, r)
+				return
+			}
+			if target, ok := p.Target[k]; ok {
+				app.logger.Debug("proxying request to new rev proxy")
+				remote, err := url.Parse(target)
+				if err != nil {
+					app.serverError(w, r, err)
+					return
+				}
 
-		rev := httputil.NewSingleHostReverseProxy(remote)
-		p.RevProxy[host] = rev
-		rev.ServeHTTP(w, r)
-		return
+				rev := httputil.NewSingleHostReverseProxy(remote)
+				p.RevProxy[host] = rev
+				rev.ServeHTTP(w, r)
+				return
+			}
+		}
 	}
+
 	err := errors.New("forbidden host")
-	app.serverError(w, r, err)
+	app.logger.Error(err.Error())
+	app.notFound(w)
 }
 
 func (app *application) listProxies(w http.ResponseWriter, r *http.Request) {

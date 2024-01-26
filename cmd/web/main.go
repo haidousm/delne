@@ -50,7 +50,7 @@ func main() {
 		logger: logger,
 		proxy: &Proxy{
 			Target: map[string]string{
-				"foo.com": "http://localhost:8080",
+				"foo.com/test": "http://localhost:8020",
 			},
 			RevProxy: make(map[string]*httputil.ReverseProxy),
 		},
