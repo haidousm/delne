@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 )
 
@@ -20,6 +21,13 @@ func (i *Image) String() string {
 		return i.Name + ":" + i.Tag
 	}
 	return i.Repository + "/" + i.Name + ":" + i.Tag
+}
+
+type Service struct {
+	Name        string
+	Image       Image
+	Network     string
+	ContainerId string
 }
 
 type Client struct {
@@ -77,4 +85,110 @@ func (c *Client) imageExists(image Image) bool {
 		}
 	}
 	return false
+}
+
+func (c *Client) networkExists(name string) bool {
+	networks, err := c.client.NetworkList(context.Background(), types.NetworkListOptions{})
+	if err != nil {
+		panic(err)
+	}
+	for _, network := range networks {
+		if network.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *Client) createNetwork(name string) error {
+	if c.networkExists(name) {
+		return nil
+	}
+	_, err := c.client.NetworkCreate(context.Background(), name, types.NetworkCreate{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) CreateContainer(service Service) (container.CreateResponse, error) {
+	if err := c.pullImage(service.Image); err != nil {
+		return container.CreateResponse{}, err
+	}
+
+	if err := c.createNetwork(service.Network); err != nil {
+		return container.CreateResponse{}, err
+	}
+
+	resp, err := c.client.ContainerCreate(context.Background(), &container.Config{
+		Image: service.Image.String(),
+	}, &container.HostConfig{
+		NetworkMode: container.NetworkMode(service.Network),
+	}, nil, nil, service.Name)
+
+	if err != nil {
+		return container.CreateResponse{}, err
+	}
+	return resp, nil
+}
+
+func (c *Client) StartContainer(service Service) error {
+	if service.ContainerId == "" {
+		return nil
+	}
+
+	err := c.client.ContainerStart(context.Background(), service.ContainerId, types.ContainerStartOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) StopContainer(service Service) error {
+	if service.ContainerId == "" {
+		return nil
+	}
+
+	err := c.client.ContainerStop(context.Background(), service.ContainerId, container.StopOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) RemoveContainer(service Service) error {
+	if service.ContainerId == "" {
+		return nil
+	}
+
+	err := c.client.ContainerRemove(context.Background(), service.ContainerId, types.ContainerRemoveOptions{})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) inspectContainer(service Service) (types.ContainerJSON, error) {
+	if service.ContainerId == "" {
+		return types.ContainerJSON{}, nil
+	}
+
+	resp, err := c.client.ContainerInspect(context.Background(), service.ContainerId)
+	if err != nil {
+		return types.ContainerJSON{}, err
+	}
+	return resp, nil
+}
+
+func (c *Client) GetContainerPorts(service Service) []string {
+	ports := []string{}
+	resp, err := c.inspectContainer(service)
+	if err != nil {
+		return ports
+	}
+
+	for p := range resp.Config.ExposedPorts {
+		ports = append(ports, string(p.Port()))
+	}
+	return ports
 }
