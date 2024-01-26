@@ -7,25 +7,46 @@ import (
 	"net/url"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/justinas/alice"
 )
+
+const PROXY_ADMIN_PATH = "/admin"
 
 type Proxy struct {
 	Target   map[string]string
 	RevProxy map[string]*httputil.ReverseProxy
 }
 
+func (app *application) proxyRoutes() http.Handler {
+
+	// use stdlib mux instead of httprouter
+	// because we want to proxy all requests regardless of path
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", app.proxyRequest)
+	standardMiddleware := alice.New(app.recoverPanic, app.logRequest)
+	return standardMiddleware.Then(mux)
+}
+
 func (app *application) proxyRequest(w http.ResponseWriter, r *http.Request) {
+
+	if len(r.URL.Path) >= len(PROXY_ADMIN_PATH) && r.URL.Path[:len(PROXY_ADMIN_PATH)] == PROXY_ADMIN_PATH {
+		app.adminHandler.ServeHTTP(w, r)
+		return
+	}
+
 	p := app.proxy
 
 	host := r.Host
 	// if we already have a rev proxy for this host setup
 	if rev, ok := p.RevProxy[host]; ok {
+		app.logger.Debug("proxying request to existing rev proxy")
 		rev.ServeHTTP(w, r)
 		return
 	}
 
 	// otherwise, create one
 	if target, ok := p.Target[host]; ok {
+		app.logger.Debug("proxying request to new rev proxy")
 		remote, err := url.Parse(target)
 		if err != nil {
 			app.serverError(w, r, err)

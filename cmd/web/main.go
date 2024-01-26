@@ -19,9 +19,10 @@ type config struct {
 }
 
 type application struct {
-	config config
-	logger *slog.Logger
-	proxy  *Proxy
+	config       config
+	logger       *slog.Logger
+	proxy        *Proxy
+	adminHandler http.Handler
 }
 
 var (
@@ -55,9 +56,11 @@ func main() {
 		},
 	}
 
+	app.adminHandler = app.adminRoutes()
+
 	srv := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.port),
-		Handler:      app.routes(),
+		Handler:      app.proxyRoutes(),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,

@@ -108,7 +108,7 @@ templ editProxyForm(host string, target string) {
 			<td class="whitespace-nowrap text-sm text-gray-500 w-[400px]"><input type="text" name="target" class="rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" value={ target }/></td>
 			<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
 				<a href="/admin/proxies" class="text-gray-600 hover:text-gray-900 mr-4" hx-boost="true">Cancel</a>
-				<button class="text-indigo-600 hover:text-indigo-900" hx-put={ fmt.Sprintf("/v1/proxies/%s", host) } hx-include="closest tr" hx-target="#edit-proxy-row" hx-swap="outerHTML" hx-replace-url="/admin/proxies">Save</button>
+				<button class="text-indigo-600 hover:text-indigo-900" hx-put={ fmt.Sprintf("/admin/api/proxies/%s", host) } hx-include="closest tr" hx-target="#edit-proxy-row" hx-swap="outerHTML" hx-replace-url="/admin/proxies">Save</button>
 			</td>
 		</form>
 	</tr>
@@ -125,7 +125,7 @@ templ createProxyForm() {
 			</td>
 			<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
 				<a href="/admin/proxies" class="text-gray-600 hover:text-gray-900 mr-4" hx-boost="true">Cancel</a>
-				<button class="text-indigo-600 hover:text-indigo-900" hx-post="/v1/proxies" hx-include="closest tr" hx-target="#create-proxy-row" hx-swap="outerHTML" hx-replace-url="/admin/proxies">Save</button>
+				<button class="text-indigo-600 hover:text-indigo-900" hx-post="/admin/api/proxies" hx-include="closest tr" hx-target="#create-proxy-row" hx-swap="outerHTML" hx-replace-url="/admin/proxies">Save</button>
 			</td>
 		</form>
 	</tr>
