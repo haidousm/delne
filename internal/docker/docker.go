@@ -3,7 +3,7 @@ package docker
 import (
 	"context"
 	"fmt"
-	"strings"
+	"regexp"
 	"sync"
 	"time"
 
@@ -29,13 +29,46 @@ func (i *Image) ParseString(image string) {
 	if image == "" {
 		return
 	}
-	parts := strings.Split(image, ":")
-	if len(parts) == 1 {
-		i.Name = parts[0]
-		return
+
+	/**
+		const regex = /^(.+)\/(.+):(.+)$|^(.+):(.+)$|^(.+)\/(.+)|^(.+)$/;
+	    const match = regex.exec(imageIdentifier);
+
+	    if (match) {
+	        const repository = match[1] ?? match[6] ?? "_";
+	        const name = match[2] ?? match[4] ?? match[7] ?? match[8];
+	        const tag = match[3] ?? match[5] ?? "latest";
+
+	        return {
+	            repository,
+	            name,
+	            tag,
+	        };
+	    }
+	    throw new Error(`Invalid image identifier: ${imageIdentifier}`);
+	*/
+
+	regex := regexp.MustCompile(`^(.+)\/(.+):(.+)$|^(.+):(.+)$|^(.+)\/(.+)|^(.+)$`)
+	match := regex.FindStringSubmatch(image)
+
+	if len(match) > 0 {
+		if match[1] != "" {
+			i.Repository = match[1]
+			i.Name = match[2]
+			i.Tag = match[3]
+		} else if match[4] != "" {
+			i.Repository = "_"
+			i.Name = match[4]
+			i.Tag = match[5]
+		} else if match[6] != "" {
+			i.Repository = match[6]
+			i.Name = match[7]
+		} else if match[8] != "" {
+			i.Repository = "_"
+			i.Name = match[8]
+			i.Tag = "latest"
+		}
 	}
-	i.Name = parts[0]
-	i.Tag = parts[1]
 }
 
 type Service struct {
@@ -48,7 +81,7 @@ type Service struct {
 	Port        string
 }
 
-func (s *Service) GetUrl() string {
+func (s *Service) Url() string {
 	return fmt.Sprintf("http://%s:%s", s.Name, s.Port)
 }
 
