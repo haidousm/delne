@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/haidousm/delne/internal/docker"
 	"github.com/haidousm/delne/internal/vcs"
 	"github.com/justinas/alice"
 )
@@ -53,6 +54,18 @@ func main() {
 				"foo.com/test": "http://localhost:8020",
 			},
 			RevProxy: make(map[string]*httputil.ReverseProxy),
+			Services: []docker.Service{
+				{
+					Name:  "foo",
+					Hosts: []string{"foo.com"},
+					Port:  "8020",
+					Image: docker.Image{
+						Repository: "docker.io/haidousm",
+						Name:       "foo",
+						Tag:        "latest",
+					},
+				},
+			},
 		},
 	}
 

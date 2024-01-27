@@ -5,11 +5,14 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+
+	"github.com/haidousm/delne/internal/docker"
 )
 
 type Proxy struct {
 	Target   map[string]string
 	RevProxy map[string]*httputil.ReverseProxy
+	Services []docker.Service
 }
 
 func (app *application) proxyRequest(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +37,7 @@ func (app *application) proxyRequest(w http.ResponseWriter, r *http.Request) {
 			}
 			if target, ok := p.Target[k]; ok {
 				app.logger.Debug("proxying request to new rev proxy")
+
 				remote, err := url.Parse(target)
 				if err != nil {
 					app.serverError(w, r, err)

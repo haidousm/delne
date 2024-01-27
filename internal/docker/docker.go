@@ -2,6 +2,8 @@ package docker
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"sync"
 	"time"
 
@@ -23,11 +25,31 @@ func (i *Image) String() string {
 	return i.Repository + "/" + i.Name + ":" + i.Tag
 }
 
+func (i *Image) ParseString(image string) {
+	if image == "" {
+		return
+	}
+	parts := strings.Split(image, ":")
+	if len(parts) == 1 {
+		i.Name = parts[0]
+		return
+	}
+	i.Name = parts[0]
+	i.Tag = parts[1]
+}
+
 type Service struct {
-	Name        string
+	Name  string
+	Hosts []string
+
+	ContainerId string
 	Image       Image
 	Network     string
-	ContainerId string
+	Port        string
+}
+
+func (s *Service) GetUrl() string {
+	return fmt.Sprintf("http://%s:%s", s.Name, s.Port)
 }
 
 type Client struct {

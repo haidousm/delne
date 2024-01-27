@@ -28,6 +28,15 @@ func (app *application) routes() http.Handler {
 	router.HandlerFunc(http.MethodGet, "/admin/proxies/:host/edit", app.editProxyForm)
 	router.HandlerFunc(http.MethodGet, "/admin/proxy/new", app.createProxyForm)
 
+	/**
+	 * Services
+	 */
+
+	router.HandlerFunc(http.MethodPost, "/admin/api/services", app.createService)
+
+	router.HandlerFunc(http.MethodGet, "/admin/services", app.servicesTableView)
+	router.HandlerFunc(http.MethodGet, "/admin/service/new", app.createServiceFormView)
+
 	standardMiddleware := alice.New(app.recoverPanic, app.logRequest) // app.secureHeaders
 	return standardMiddleware.Then(router)
 }
