@@ -21,9 +21,10 @@ type config struct {
 }
 
 type application struct {
-	config config
-	logger *slog.Logger
-	proxy  *Proxy
+	config  config
+	logger  *slog.Logger
+	proxy   *Proxy
+	dClient *docker.Client
 }
 
 var (
@@ -44,7 +45,16 @@ func main() {
 		os.Exit(0)
 	}
 
-	logger := slog.New(slog.NewTextHandler(os.Stdout, nil))
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}
+	logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
+
+	dClient, err := docker.NewClient()
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
 
 	app := &application{
 		config: cfg,
@@ -54,7 +64,7 @@ func main() {
 				"foo.com/test": "http://localhost:8020",
 			},
 			RevProxy: make(map[string]*httputil.ReverseProxy),
-			Services: []docker.Service{
+			Services: []*docker.Service{
 				{
 					Name:  "foo",
 					Hosts: []string{"foo.com"},
@@ -67,6 +77,7 @@ func main() {
 				},
 			},
 		},
+		dClient: dClient,
 	}
 
 	mux := http.NewServeMux()
@@ -86,7 +97,7 @@ func main() {
 
 	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
 
-	err := srv.ListenAndServe()
+	err = srv.ListenAndServe()
 	logger.Error(err.Error())
 	os.Exit(1)
 }
