@@ -50,6 +50,7 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 		Image:   imageObj,
 		Hosts:   []string{host},
 		Network: network,
+		Status:  docker.PULLING,
 	}
 
 	app.logger.Debug("creating service", "name", name, "image", image, "host", host)
@@ -72,6 +73,7 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 			app.logger.Error(err.Error())
 			return
 		}
+		service.Status = docker.CREATED
 
 		service.ContainerId = resp.ID
 		app.logger.Debug("created container", "id", resp.ID)
@@ -81,6 +83,7 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 			app.logger.Error(err.Error())
 			return
 		}
+		service.Status = docker.RUNNING
 		app.logger.Debug("started container", "id", resp.ID)
 	}()
 

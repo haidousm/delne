@@ -71,10 +71,21 @@ func (i *Image) ParseString(image string) {
 	}
 }
 
+type ServiceStatus string
+
+const (
+	PULLING ServiceStatus = "PULLING"
+	CREATED ServiceStatus = "CREATED"
+	RUNNING ServiceStatus = "RUNNING"
+	STOPPED ServiceStatus = "STOPPED"
+	ERROR   ServiceStatus = "ERROR"
+)
+
 type Service struct {
 	Name  string
 	Hosts []string
 
+	Status      ServiceStatus
 	ContainerId string
 	Image       Image
 	Network     string

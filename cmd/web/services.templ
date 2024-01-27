@@ -65,7 +65,7 @@ templ servicesTable(services []*docker.Service, showForm bool) {
 				<div class="-mx-4 -my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
 					<div class="inline-block min-w-full py-2 align-middle sm:px-6 lg:px-8">
 						<div class="overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
-							<table class="min-w-full divide-y divide-gray-300">
+							<table class="min-w-full divide-y divide-gray-300 bg-gray-50">
 								<thead class="bg-gray-50">
 									<tr>
 										<th scope="col" class="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6 w-[400px]">Name</th>
@@ -95,7 +95,14 @@ templ servicesTable(services []*docker.Service, showForm bool) {
 
 templ servicesTableRow(service docker.Service) {
 	<tr hx-target="this" hx-swap="outerHTML">
-		<td class="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 w-[400px]">{ service.Name }</td>
+		<td
+			class={
+				"whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 w-[400px] border-l-[32px]",
+				templ.KV("border-gray-600", service.Status == docker.CREATED || service.Status == docker.PULLING),
+				templ.KV("border-green-600", service.Status == docker.RUNNING),
+				templ.KV("border-red-600", service.Status == docker.STOPPED || service.Status == docker.CREATED),
+			}
+		>{ service.Name }</td>
 		<td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 w-[400px]">{ service.Image.String() }</td>
 		<td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 w-[400px]">{ service.Hosts[0] }</td>
 		<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
