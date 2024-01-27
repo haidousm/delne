@@ -74,6 +74,7 @@ func main() {
 						Name:       "foo",
 						Tag:        "latest",
 					},
+					Status: docker.STOPPED,
 				},
 			},
 		},
