@@ -15,6 +15,48 @@ type Proxy struct {
 	Services []*docker.Service
 }
 
+func (app *application) GetService(name string) *docker.Service {
+	proxy := app.proxy
+	for _, s := range proxy.Services {
+		if s.Name == name {
+			return s
+		}
+	}
+	return nil
+}
+
+func (app *application) RemoveService(name string) error {
+	service := app.GetService(name)
+	if service == nil {
+		return errors.New("service not found")
+	}
+
+	proxy := app.proxy
+	for i, s := range proxy.Services {
+		if s.Name == name {
+			proxy.Services = append(proxy.Services[:i], proxy.Services[i+1:]...)
+			break
+		}
+	}
+
+	for k, v := range proxy.Target {
+		if v == name {
+			delete(proxy.Target, k)
+			break
+		}
+	}
+
+	for k := range proxy.RevProxy {
+		if k == name {
+			delete(proxy.RevProxy, k)
+			break
+		}
+	}
+
+	err := app.dClient.RemoveContainer(*service)
+	return err
+}
+
 func (app *application) proxyRequest(w http.ResponseWriter, r *http.Request) {
 	p := app.proxy
 

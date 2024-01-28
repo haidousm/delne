@@ -227,7 +227,7 @@ func (c *Client) RemoveContainer(service Service) error {
 		return nil
 	}
 
-	err := c.client.ContainerRemove(context.Background(), service.ContainerId, types.ContainerRemoveOptions{})
+	err := c.client.ContainerRemove(context.Background(), service.ContainerId, types.ContainerRemoveOptions{Force: true})
 	if err != nil {
 		return err
 	}
