@@ -1,6 +1,9 @@
 package models
 
-import "regexp"
+import (
+	"database/sql"
+	"regexp"
+)
 
 type Image struct {
 	Repository string
@@ -41,4 +44,33 @@ func (i *Image) ParseString(image string) {
 			i.Tag = "latest"
 		}
 	}
+}
+
+type ImageModelInterface interface {
+	Insert(repository string, name string, tag string) (int, error)
+	Get(id int) (*Image, error)
+}
+
+type ImageModel struct {
+	DB *sql.DB
+}
+
+func (m *ImageModel) Insert(repository string, name string, tag string) (int, error) {
+	stmt := `INSERT INTO images (repository, name, tag) VALUES ($1, $2, $3) RETURNING id`
+	var id int
+	err := m.DB.QueryRow(stmt, repository, name, tag).Scan(&id)
+	if err != nil {
+		return 0, err
+	}
+	return id, nil
+}
+
+func (m *ImageModel) Get(id int) (*Image, error) {
+	stmt := `SELECT id, repository, name, tag FROM images WHERE id = $1`
+	var i Image
+	err := m.DB.QueryRow(stmt, id).Scan(&i)
+	if err != nil {
+		return nil, err
+	}
+	return &i, nil
 }
