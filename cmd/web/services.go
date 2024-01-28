@@ -5,6 +5,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/haidousm/delne/internal/docker"
+	"github.com/julienschmidt/httprouter"
 )
 
 func (app *application) servicesTableView(w http.ResponseWriter, r *http.Request) {
@@ -89,4 +90,34 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 
 	component := servicesTableRow(service)
 	component.Render(r.Context(), w)
+}
+
+func (app *application) deleteService(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	name := params.ByName("name")
+
+	if name == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	service := app.GetService(name)
+	if service == nil {
+		app.clientError(w, http.StatusNotFound)
+		return
+	}
+
+	err := app.RemoveService(name)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	onlyPartial := r.Header.Get("HX-Request") == "true"
+	if !onlyPartial {
+		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
