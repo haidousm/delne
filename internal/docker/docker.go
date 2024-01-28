@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"regexp"
 	"sync"
@@ -200,7 +201,7 @@ func (c *Client) CreateContainer(service Service) (container.CreateResponse, err
 
 func (c *Client) StartContainer(service Service) error {
 	if service.ContainerId == "" {
-		return nil
+		return errors.New("container id is empty")
 	}
 
 	err := c.client.ContainerStart(context.Background(), service.ContainerId, types.ContainerStartOptions{})
@@ -212,7 +213,7 @@ func (c *Client) StartContainer(service Service) error {
 
 func (c *Client) StopContainer(service Service) error {
 	if service.ContainerId == "" {
-		return nil
+		return errors.New("container id is empty")
 	}
 
 	err := c.client.ContainerStop(context.Background(), service.ContainerId, container.StopOptions{})
