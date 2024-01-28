@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -13,12 +14,14 @@ import (
 	"github.com/haidousm/delne/internal/models"
 	"github.com/haidousm/delne/internal/vcs"
 	"github.com/justinas/alice"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type config struct {
 	port  int
 	env   string
 	debug bool
+	dsn   string
 }
 
 type application struct {
@@ -26,6 +29,9 @@ type application struct {
 	logger  *slog.Logger
 	proxy   *Proxy
 	dClient *docker.Client
+
+	images   models.ImageModelInterface
+	services models.ServiceModelInterface
 }
 
 var (
@@ -34,7 +40,9 @@ var (
 
 func main() {
 	var cfg config
-	flag.IntVar(&cfg.port, "port", 4000, "API server port")
+
+	dsn := flag.String(cfg.dsn, "file:delne.db", "SQLite3 data source name")
+	flag.IntVar(&cfg.port, "port", 4000, "server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
 	displayVersion := flag.Bool("version", false, "Display version and exit")
@@ -51,6 +59,13 @@ func main() {
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
 
+	db, err := openDB(*dsn)
+	if err != nil {
+		logger.Error(err.Error())
+		os.Exit(1)
+	}
+	defer db.Close()
+
 	dClient, err := docker.NewClient()
 	if err != nil {
 		logger.Error(err.Error())
@@ -65,19 +80,7 @@ func main() {
 				"foo.com/test": "http://localhost:8020",
 			},
 			RevProxy: make(map[string]*httputil.ReverseProxy),
-			Services: []*models.Service{
-				{
-					Name:  "foo",
-					Hosts: []string{"foo.com"},
-					Port:  "8020",
-					Image: models.Image{
-						Repository: "docker.io/haidousm",
-						Name:       "foo",
-						Tag:        "latest",
-					},
-					Status: models.STOPPED,
-				},
-			},
+			Services: []*models.Service{},
 		},
 		dClient: dClient,
 	}
@@ -102,4 +105,19 @@ func main() {
 	err = srv.ListenAndServe()
 	logger.Error(err.Error())
 	os.Exit(1)
+}
+
+func openDB(dsn string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite3", dsn)
+	if err != nil {
+		return nil, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		db.Close()
+		return nil, err
+	}
+
+	return db, nil
 }

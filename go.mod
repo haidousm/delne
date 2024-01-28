@@ -7,6 +7,7 @@ require (
 	github.com/docker/docker v24.0.8+incompatible
 	github.com/julienschmidt/httprouter v1.3.0
 	github.com/justinas/alice v1.2.0
+	github.com/mattn/go-sqlite3 v1.14.20
 )
 
 require (
@@ -22,7 +23,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/sys v0.14.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	gotest.tools/v3 v3.5.1 // indirect
 )
