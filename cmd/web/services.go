@@ -121,3 +121,79 @@ func (app *application) deleteService(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 }
+
+func (app *application) startService(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	name := params.ByName("name")
+
+	if name == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	service := app.GetService(name)
+	if service == nil {
+		app.clientError(w, http.StatusNotFound)
+		return
+	}
+
+	if service.Status == docker.RUNNING {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	err := app.dClient.StartContainer(*service)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	service.Status = docker.RUNNING
+
+	onlyPartial := r.Header.Get("HX-Request") == "true"
+	if !onlyPartial {
+		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
+		return
+	}
+
+	component := servicesTableRow(*service)
+	component.Render(r.Context(), w)
+}
+
+func (app *application) stopService(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	name := params.ByName("name")
+
+	if name == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	service := app.GetService(name)
+	if service == nil {
+		app.clientError(w, http.StatusNotFound)
+		return
+	}
+
+	if service.Status != docker.RUNNING {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	err := app.dClient.StopContainer(*service)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	service.Status = docker.STOPPED
+
+	onlyPartial := r.Header.Get("HX-Request") == "true"
+	if !onlyPartial {
+		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
+		return
+	}
+
+	component := servicesTableRow(*service)
+	component.Render(r.Context(), w)
+}
