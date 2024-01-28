@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/docker/docker/api/types/container"
+	"github.com/haidousm/delne/internal/models"
 )
 
 func TestPullImage(t *testing.T) {
@@ -12,7 +13,7 @@ func TestPullImage(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	image := Image{
+	image := models.Image{
 		Repository: "_",
 		Name:       "alpine",
 		Tag:        "latest",
@@ -42,13 +43,13 @@ func TestCreateContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	image := Image{
+	image := models.Image{
 		Repository: "_",
 		Name:       "alpine",
 		Tag:        "latest",
 	}
 
-	service := Service{
+	service := models.Service{
 		Name:    "test-alpine",
 		Image:   image,
 		Network: "test-network",
@@ -87,13 +88,13 @@ func TestStartContainer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	image := Image{
+	image := models.Image{
 		Repository: "_",
 		Name:       "alpine",
 		Tag:        "latest",
 	}
 
-	service := Service{
+	service := models.Service{
 		Name:    "test-alpine",
 		Image:   image,
 		Network: "test-network",

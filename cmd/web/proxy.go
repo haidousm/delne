@@ -6,16 +6,16 @@ import (
 	"net/http/httputil"
 	"net/url"
 
-	"github.com/haidousm/delne/internal/docker"
+	"github.com/haidousm/delne/internal/models"
 )
 
 type Proxy struct {
 	Target   map[string]string
 	RevProxy map[string]*httputil.ReverseProxy
-	Services []*docker.Service
+	Services []*models.Service
 }
 
-func (app *application) GetService(name string) *docker.Service {
+func (app *application) GetService(name string) *models.Service {
 	proxy := app.proxy
 	for _, s := range proxy.Services {
 		if s.Name == name {
@@ -81,7 +81,7 @@ func (app *application) proxyRequest(w http.ResponseWriter, r *http.Request) {
 				app.logger.Debug("proxying request to new rev proxy")
 
 				// find service with name == target
-				var service *docker.Service
+				var service *models.Service
 				for _, s := range p.Services {
 					if s.Name == target {
 						service = s

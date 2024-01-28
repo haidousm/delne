@@ -3,99 +3,14 @@ package docker
 import (
 	"context"
 	"errors"
-	"fmt"
-	"regexp"
 	"sync"
 	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/haidousm/delne/internal/models"
 )
-
-type Image struct {
-	Repository string
-	Name       string
-	Tag        string
-}
-
-func (i *Image) String() string {
-	if i.Repository == "_" {
-		return i.Name + ":" + i.Tag
-	}
-	return i.Repository + "/" + i.Name + ":" + i.Tag
-}
-
-func (i *Image) ParseString(image string) {
-	if image == "" {
-		return
-	}
-
-	/**
-		const regex = /^(.+)\/(.+):(.+)$|^(.+):(.+)$|^(.+)\/(.+)|^(.+)$/;
-	    const match = regex.exec(imageIdentifier);
-
-	    if (match) {
-	        const repository = match[1] ?? match[6] ?? "_";
-	        const name = match[2] ?? match[4] ?? match[7] ?? match[8];
-	        const tag = match[3] ?? match[5] ?? "latest";
-
-	        return {
-	            repository,
-	            name,
-	            tag,
-	        };
-	    }
-	    throw new Error(`Invalid image identifier: ${imageIdentifier}`);
-	*/
-
-	regex := regexp.MustCompile(`^(.+)\/(.+):(.+)$|^(.+):(.+)$|^(.+)\/(.+)|^(.+)$`)
-	match := regex.FindStringSubmatch(image)
-
-	if len(match) > 0 {
-		if match[1] != "" {
-			i.Repository = match[1]
-			i.Name = match[2]
-			i.Tag = match[3]
-		} else if match[4] != "" {
-			i.Repository = "_"
-			i.Name = match[4]
-			i.Tag = match[5]
-		} else if match[6] != "" {
-			i.Repository = match[6]
-			i.Name = match[7]
-		} else if match[8] != "" {
-			i.Repository = "_"
-			i.Name = match[8]
-			i.Tag = "latest"
-		}
-	}
-}
-
-type ServiceStatus string
-
-const (
-	PULLING ServiceStatus = "PULLING"
-	CREATED ServiceStatus = "CREATED"
-	RUNNING ServiceStatus = "RUNNING"
-	STOPPED ServiceStatus = "STOPPED"
-	ERROR   ServiceStatus = "ERROR"
-)
-
-type Service struct {
-	Name  string
-	Hosts []string
-
-	Status      ServiceStatus
-	ContainerId string
-	Image       Image
-	Network     string
-	Port        string
-}
-
-func (s *Service) Url() string {
-	return fmt.Sprintf("http://%s:%s", s.Name, s.Port)
-}
 
 type Client struct {
 	client *client.Client
@@ -111,7 +26,7 @@ func NewClient() (*Client, error) {
 	return &Client{client: client}, nil
 }
 
-func (c *Client) pullImage(image Image) error {
+func (c *Client) pullImage(image models.Image) error {
 	reader, err := c.client.ImagePull(context.Background(), image.String(), types.ImagePullOptions{})
 	if err != nil {
 		return err
@@ -142,7 +57,7 @@ func (c *Client) listImages() []types.ImageSummary {
 	return list
 }
 
-func (c *Client) imageExists(image Image) bool {
+func (c *Client) imageExists(image models.Image) bool {
 	images := c.listImages()
 	for _, ims := range images {
 		for _, tag := range ims.RepoTags {
@@ -178,7 +93,7 @@ func (c *Client) createNetwork(name string) error {
 	return nil
 }
 
-func (c *Client) CreateContainer(service Service) (container.CreateResponse, error) {
+func (c *Client) CreateContainer(service models.Service) (container.CreateResponse, error) {
 	if err := c.pullImage(service.Image); err != nil {
 		return container.CreateResponse{}, err
 	}
@@ -199,7 +114,7 @@ func (c *Client) CreateContainer(service Service) (container.CreateResponse, err
 	return resp, nil
 }
 
-func (c *Client) StartContainer(service Service) error {
+func (c *Client) StartContainer(service models.Service) error {
 	if service.ContainerId == "" {
 		return errors.New("container id is empty")
 	}
@@ -211,7 +126,7 @@ func (c *Client) StartContainer(service Service) error {
 	return nil
 }
 
-func (c *Client) StopContainer(service Service) error {
+func (c *Client) StopContainer(service models.Service) error {
 	if service.ContainerId == "" {
 		return errors.New("container id is empty")
 	}
@@ -223,7 +138,7 @@ func (c *Client) StopContainer(service Service) error {
 	return nil
 }
 
-func (c *Client) RemoveContainer(service Service) error {
+func (c *Client) RemoveContainer(service models.Service) error {
 	if service.ContainerId == "" {
 		return nil
 	}
@@ -235,7 +150,7 @@ func (c *Client) RemoveContainer(service Service) error {
 	return nil
 }
 
-func (c *Client) inspectContainer(service Service) (types.ContainerJSON, error) {
+func (c *Client) inspectContainer(service models.Service) (types.ContainerJSON, error) {
 	if service.ContainerId == "" {
 		return types.ContainerJSON{}, nil
 	}
@@ -247,7 +162,7 @@ func (c *Client) inspectContainer(service Service) (types.ContainerJSON, error) 
 	return resp, nil
 }
 
-func (c *Client) GetContainerPorts(service Service) []string {
+func (c *Client) GetContainerPorts(service models.Service) []string {
 	ports := []string{}
 	resp, err := c.inspectContainer(service)
 	if err != nil {
