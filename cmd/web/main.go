@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/haidousm/delne/internal/docker"
+	"github.com/haidousm/delne/internal/models"
 	"github.com/haidousm/delne/internal/vcs"
 	"github.com/justinas/alice"
 )
@@ -64,17 +65,17 @@ func main() {
 				"foo.com/test": "http://localhost:8020",
 			},
 			RevProxy: make(map[string]*httputil.ReverseProxy),
-			Services: []*docker.Service{
+			Services: []*models.Service{
 				{
 					Name:  "foo",
 					Hosts: []string{"foo.com"},
 					Port:  "8020",
-					Image: docker.Image{
+					Image: models.Image{
 						Repository: "docker.io/haidousm",
 						Name:       "foo",
 						Tag:        "latest",
 					},
-					Status: docker.STOPPED,
+					Status: models.STOPPED,
 				},
 			},
 		},

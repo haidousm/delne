@@ -11,7 +11,7 @@ import "io"
 import "bytes"
 
 import "fmt"
-import "github.com/haidousm/delne/internal/docker"
+import "github.com/haidousm/delne/internal/models"
 
 func header(title string) templ.Component {
 	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
@@ -135,7 +135,7 @@ func navbar(items []string, current string) templ.Component {
 	})
 }
 
-func servicesTable(services []*docker.Service, showForm bool) templ.Component {
+func servicesTable(services []*models.Service, showForm bool) templ.Component {
 	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)
 		if !templ_7745c5c3_IsBuffer {
@@ -220,7 +220,7 @@ func servicesTable(services []*docker.Service, showForm bool) templ.Component {
 	})
 }
 
-func startServiceButton(service docker.Service) templ.Component {
+func startServiceButton(service models.Service) templ.Component {
 	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)
 		if !templ_7745c5c3_IsBuffer {
@@ -261,7 +261,7 @@ func startServiceButton(service docker.Service) templ.Component {
 	})
 }
 
-func stopServiceButton(service docker.Service) templ.Component {
+func stopServiceButton(service models.Service) templ.Component {
 	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)
 		if !templ_7745c5c3_IsBuffer {
@@ -302,7 +302,7 @@ func stopServiceButton(service docker.Service) templ.Component {
 	})
 }
 
-func servicesTableRow(service docker.Service) templ.Component {
+func servicesTableRow(service models.Service) templ.Component {
 	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)
 		if !templ_7745c5c3_IsBuffer {
@@ -321,9 +321,9 @@ func servicesTableRow(service docker.Service) templ.Component {
 		}
 		var templ_7745c5c3_Var19 = []any{
 			"whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 w-[400px] border-l-[32px]",
-			templ.KV("border-gray-600", service.Status == docker.CREATED || service.Status == docker.PULLING),
-			templ.KV("border-green-600", service.Status == docker.RUNNING),
-			templ.KV("border-red-600", service.Status == docker.STOPPED || service.Status == docker.CREATED),
+			templ.KV("border-gray-600", service.Status == models.CREATED || service.Status == models.PULLING),
+			templ.KV("border-green-600", service.Status == models.RUNNING),
+			templ.KV("border-red-600", service.Status == models.STOPPED || service.Status == models.CREATED),
 		}
 		templ_7745c5c3_Err = templ.RenderCSSItems(ctx, templ_7745c5c3_Buffer, templ_7745c5c3_Var19...)
 		if templ_7745c5c3_Err != nil {
@@ -380,7 +380,7 @@ func servicesTableRow(service docker.Service) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		if service.Status == docker.RUNNING {
+		if service.Status == models.RUNNING {
 			templ_7745c5c3_Err = stopServiceButton(service).Render(ctx, templ_7745c5c3_Buffer)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
@@ -491,7 +491,7 @@ func createServiceFormRow() templ.Component {
 //			</form>
 //		</tr>
 //	}
-func ServicesDashboard(services []*docker.Service) templ.Component {
+func ServicesDashboard(services []*models.Service) templ.Component {
 	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)
 		if !templ_7745c5c3_IsBuffer {

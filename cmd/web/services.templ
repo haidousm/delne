@@ -1,7 +1,7 @@
 package main
 
 import "fmt"
-import "github.com/haidousm/delne/internal/docker"
+import "github.com/haidousm/delne/internal/models"
 
 templ header(title string) {
 	<header>
@@ -49,7 +49,7 @@ templ navbar(items []string, current string) {
 	</nav>
 }
 
-templ servicesTable(services []*docker.Service, showForm bool) {
+templ servicesTable(services []*models.Service, showForm bool) {
 	<div id="services-table">
 		<div class="px-4 sm:px-6 lg:px-8">
 			<div class="sm:flex sm:items-center">
@@ -92,7 +92,7 @@ templ servicesTable(services []*docker.Service, showForm bool) {
 	</div>
 }
 
-templ startServiceButton(service docker.Service) {
+templ startServiceButton(service models.Service) {
 	<button
 		class="rounded-md bg-green-600 p-2 text-white hover:bg-green-900 disabled:cursor-not-allowed disabled:bg-gray-600 disabled:hover:bg-gray-600"
 		hx-post={ templ.EscapeString(fmt.Sprintf("/admin/api/services/%s/start", service.Name)) }
@@ -101,7 +101,7 @@ templ startServiceButton(service docker.Service) {
 	</button>
 }
 
-templ stopServiceButton(service docker.Service) {
+templ stopServiceButton(service models.Service) {
 	<button
 		class="rounded-md bg-red-600 p-2 text-white hover:bg-red-900 disabled:cursor-not-allowed disabled:bg-gray-600 disabled:hover:bg-gray-600"
 		hx-post={ templ.EscapeString(fmt.Sprintf("/admin/api/services/%s/stop", service.Name)) }
@@ -110,20 +110,20 @@ templ stopServiceButton(service docker.Service) {
 	</button>
 }
 
-templ servicesTableRow(service docker.Service) {
+templ servicesTableRow(service models.Service) {
 	<tr hx-target="this" hx-swap="outerHTML">
 		<td
 			class={
 				"whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6 w-[400px] border-l-[32px]",
-				templ.KV("border-gray-600", service.Status == docker.CREATED || service.Status == docker.PULLING),
-				templ.KV("border-green-600", service.Status == docker.RUNNING),
-				templ.KV("border-red-600", service.Status == docker.STOPPED || service.Status == docker.CREATED),
+				templ.KV("border-gray-600", service.Status == models.CREATED || service.Status == models.PULLING),
+				templ.KV("border-green-600", service.Status == models.RUNNING),
+				templ.KV("border-red-600", service.Status == models.STOPPED || service.Status == models.CREATED),
 			}
 		>{ service.Name }</td>
 		<td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 w-[400px]">{ service.Image.String() }</td>
 		<td class="whitespace-nowrap px-3 py-4 text-sm text-gray-500 w-[400px]">{ service.Hosts[0] }</td>
 		<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-			if service.Status == docker.RUNNING {
+			if service.Status == models.RUNNING {
 				@stopServiceButton(service)
 			} else {
 				@startServiceButton(service)
@@ -168,7 +168,7 @@ templ createServiceFormRow() {
 // 		</form>
 // 	</tr>
 // }
-templ ServicesDashboard(services []*docker.Service) {
+templ ServicesDashboard(services []*models.Service) {
 	<html class="h-full">
 		<head>
 			<title>Delne</title>

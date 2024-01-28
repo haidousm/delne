@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/a-h/templ"
-	"github.com/haidousm/delne/internal/docker"
+	"github.com/haidousm/delne/internal/models"
 	"github.com/julienschmidt/httprouter"
 )
 
@@ -42,16 +42,16 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	imageObj := docker.Image{}
+	imageObj := models.Image{}
 	imageObj.ParseString(image)
 
 	network := "delne" //temp, should be configurable
-	service := docker.Service{
+	service := models.Service{
 		Name:    name,
 		Image:   imageObj,
 		Hosts:   []string{host},
 		Network: network,
-		Status:  docker.PULLING,
+		Status:  models.PULLING,
 	}
 
 	app.logger.Debug("creating service", "name", name, "image", image, "host", host)
@@ -74,7 +74,7 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 			app.logger.Error(err.Error())
 			return
 		}
-		service.Status = docker.CREATED
+		service.Status = models.CREATED
 
 		service.ContainerId = resp.ID
 		app.logger.Debug("created container", "id", resp.ID)
@@ -84,7 +84,7 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 			app.logger.Error(err.Error())
 			return
 		}
-		service.Status = docker.RUNNING
+		service.Status = models.RUNNING
 		app.logger.Debug("started container", "id", resp.ID)
 	}()
 
@@ -137,7 +137,7 @@ func (app *application) startService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if service.Status == docker.RUNNING {
+	if service.Status == models.RUNNING {
 		app.clientError(w, http.StatusBadRequest)
 		return
 	}
@@ -148,7 +148,7 @@ func (app *application) startService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service.Status = docker.RUNNING
+	service.Status = models.RUNNING
 
 	onlyPartial := r.Header.Get("HX-Request") == "true"
 	if !onlyPartial {
@@ -175,7 +175,7 @@ func (app *application) stopService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if service.Status != docker.RUNNING {
+	if service.Status != models.RUNNING {
 		app.clientError(w, http.StatusBadRequest)
 		return
 	}
@@ -186,7 +186,7 @@ func (app *application) stopService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service.Status = docker.STOPPED
+	service.Status = models.STOPPED
 
 	onlyPartial := r.Header.Get("HX-Request") == "true"
 	if !onlyPartial {
