@@ -400,7 +400,7 @@ func servicesTableRow(service docker.Service) templ.Component {
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" class=\"text-indigo-600 hover:text-indigo-900\" hx-boost=\"true\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("\" class=\"disabled:text-indigo-600 disabled:hover:text-indigo-900 bg-slate-50 text-slate-500 border-slate-200 cursor-not-allowed pointer-events-none\" hx-boost=\"true\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
@@ -479,6 +479,18 @@ func createServiceFormRow() templ.Component {
 	})
 }
 
+//	templ editServiceFormRow(service *docker.Service) {
+//		<tr id="edit-service-row">
+//			<form>
+//				<td class="whitespace-nowrap text-sm font-medium text-gray-900 sm:pl-6 w-[400px]">{ service.Name }</td>
+//				<td class="whitespace-nowrap text-sm text-gray-500 w-[400px]"><input type="text" name="target" class="rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" value={ target }/></td>
+//				<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+//					<a href="/admin/proxies" class="text-gray-600 hover:text-gray-900 mr-4" hx-boost="true">Cancel</a>
+//					<button class="text-indigo-600 hover:text-indigo-900" hx-put={ fmt.Sprintf("/admin/api/proxies/%s", host) } hx-include="closest tr" hx-target="#edit-proxy-row" hx-swap="outerHTML" hx-replace-url="/admin/proxies">Save</button>
+//				</td>
+//			</form>
+//		</tr>
+//	}
 func ServicesDashboard(services []*docker.Service) templ.Component {
 	return templ.ComponentFunc(func(ctx context.Context, templ_7745c5c3_W io.Writer) (templ_7745c5c3_Err error) {
 		templ_7745c5c3_Buffer, templ_7745c5c3_IsBuffer := templ_7745c5c3_W.(*bytes.Buffer)

@@ -15,4 +15,5 @@ Delne is Arabic for "show me the way". It is a simple reverse proxy with a web i
 - [] Add ability to add custom headers to the request
 - [] Add docker orchestration
 - [] Add WS for real-time service status updates
+- [] Add multi-host support
 - [] Add tests
