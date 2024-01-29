@@ -3,12 +3,16 @@ package models
 import (
 	"database/sql"
 	"regexp"
+	"time"
 )
 
 type Image struct {
+	ID         int
 	Repository string
 	Name       string
 	Tag        string
+
+	Created time.Time
 }
 
 func (i *Image) String() string {
@@ -49,6 +53,7 @@ func (i *Image) ParseString(image string) {
 type ImageModelInterface interface {
 	Insert(repository string, name string, tag string) (int, error)
 	Get(id int) (*Image, error)
+	GetAll() ([]*Image, error)
 }
 
 type ImageModel struct {
@@ -73,4 +78,30 @@ func (m *ImageModel) Get(id int) (*Image, error) {
 		return nil, err
 	}
 	return &i, nil
+}
+
+func (m *ImageModel) GetAll() ([]*Image, error) {
+	stmt := `SELECT id, repository, name, tag FROM images`
+	rows, err := m.DB.Query(stmt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var images []*Image
+
+	for rows.Next() {
+		var i Image
+		err := rows.Scan(&i.ID, &i.Repository, &i.Name, &i.Tag)
+		if err != nil {
+			return nil, err
+		}
+		images = append(images, &i)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return images, nil
 }
