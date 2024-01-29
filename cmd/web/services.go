@@ -20,7 +20,7 @@ func (app *application) servicesTableView(w http.ResponseWriter, r *http.Request
 		app.serverError(w, r, err)
 		return
 	}
-	app.logger.Debug("services", "services", services, "images", images)
+
 	component := ServicesDashboard(services, images)
 	templ.Handler(component).ServeHTTP(w, r)
 }
@@ -127,33 +127,33 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) deleteService(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
-	name := params.ByName("name")
+	// params := httprouter.ParamsFromContext(r.Context())
+	// name := params.ByName("name")
 
-	if name == "" {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
+	// if name == "" {
+	// 	app.clientError(w, http.StatusBadRequest)
+	// 	return
+	// }
 
-	service := app.GetService(name)
-	if service == nil {
-		app.clientError(w, http.StatusNotFound)
-		return
-	}
+	// service := app.GetService(name)
+	// if service == nil {
+	// 	app.clientError(w, http.StatusNotFound)
+	// 	return
+	// }
 
-	err := app.RemoveService(name)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
+	// err := app.RemoveService(name)
+	// if err != nil {
+	// 	app.serverError(w, r, err)
+	// 	return
+	// }
 
-	onlyPartial := r.Header.Get("HX-Request") == "true"
-	if !onlyPartial {
-		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
-		return
-	}
+	// onlyPartial := r.Header.Get("HX-Request") == "true"
+	// if !onlyPartial {
+	// 	http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
+	// 	return
+	// }
 
-	w.WriteHeader(http.StatusOK)
+	// w.WriteHeader(http.StatusOK)
 }
 
 func (app *application) startService(w http.ResponseWriter, r *http.Request) {

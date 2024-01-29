@@ -10,7 +10,7 @@ type Image struct {
 */
 
 CREATE TABLE images (
-  id SERIAL PRIMARY KEY,
+  id INTEGER NOT NULL PRIMARY KEY,
   repository TEXT NOT NULL,
   name TEXT NOT NULL,
   tag TEXT NOT NULL,

@@ -3,6 +3,7 @@ package models
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -25,13 +26,13 @@ type Service struct {
 	ContainerId string
 	ImageID     int
 	Network     string
-	Port        string
+	Port        *string
 
 	Created time.Time
 }
 
 func (s *Service) Url() string {
-	return fmt.Sprintf("http://%s:%s", s.Name, s.Port)
+	return fmt.Sprintf("http://%s:%s", s.Name, *s.Port)
 }
 
 type ServiceModelInterface interface {
@@ -50,9 +51,14 @@ type ServiceModel struct {
 }
 
 func (m *ServiceModel) Insert(name string, hosts []string, image_id int, network string) (int, error) {
-	stmt := `INSERT INTO services (name, hosts, image_id, network) VALUES ($1, $2, $3, $4) RETURNING id`
+
+	hostsCSV := ""
+	for _, host := range hosts {
+		hostsCSV += host + ","
+	}
+	stmt := `INSERT INTO services (name, hosts, image_id, network, status, created) VALUES ($1, $2, $3, $4, $5, datetime('now')) RETURNING id`
 	var id int
-	err := m.DB.QueryRow(stmt, name, hosts, image_id, network).Scan(&id)
+	err := m.DB.QueryRow(stmt, name, hostsCSV, image_id, network, PULLING).Scan(&id)
 	if err != nil {
 		return 0, err
 	}
@@ -62,9 +68,16 @@ func (m *ServiceModel) Insert(name string, hosts []string, image_id int, network
 func (m *ServiceModel) Get(id int) (*Service, error) {
 	stmt := `SELECT id, name, hosts, status, container_id, image_id, network, port FROM services WHERE id = $1`
 	var s Service
-	err := m.DB.QueryRow(stmt, id).Scan(&s.ID, &s.Name, &s.Hosts, &s.Status, &s.ContainerId, &s.ImageID, &s.Network, &s.Port)
+	hostsCSV := ""
+	err := m.DB.QueryRow(stmt, id).Scan(&s.ID, &s.Name, &hostsCSV, &s.Status, &s.ContainerId, &s.ImageID, &s.Network, &s.Port)
 	if err != nil {
 		return nil, err
+	}
+	s.Hosts = []string{}
+	for _, host := range strings.Split(hostsCSV, ",") {
+		if host != "" {
+			s.Hosts = append(s.Hosts, host)
+		}
 	}
 	return &s, nil
 }
@@ -79,11 +92,20 @@ func (m *ServiceModel) GetAll() ([]*Service, error) {
 
 	var services []*Service
 	for rows.Next() {
+
+		hostsCSV := ""
 		var s Service
-		err := rows.Scan(&s.ID, &s.Name, &s.Hosts, &s.Status, &s.ContainerId, &s.ImageID, &s.Network, &s.Port)
+		err := rows.Scan(&s.ID, &s.Name, &hostsCSV, &s.Status, &s.ContainerId, &s.ImageID, &s.Network, &s.Port)
 		if err != nil {
 			return nil, err
 		}
+		s.Hosts = []string{}
+		for _, host := range strings.Split(hostsCSV, ",") {
+			if host != "" {
+				s.Hosts = append(s.Hosts, host)
+			}
+		}
+
 		services = append(services, &s)
 	}
 	if err = rows.Err(); err != nil {
@@ -94,11 +116,21 @@ func (m *ServiceModel) GetAll() ([]*Service, error) {
 
 func (m *ServiceModel) GetByName(name string) (*Service, error) {
 	stmt := `SELECT id, name, hosts, status, container_id, image_id, network, port FROM services WHERE name = $1`
+
+	hostsCSV := ""
 	var s Service
-	err := m.DB.QueryRow(stmt, name).Scan(&s.ID, &s.Name, &s.Hosts, &s.Status, &s.ContainerId, &s.ImageID, &s.Network, &s.Port)
+	err := m.DB.QueryRow(stmt, name).Scan(&s.ID, &s.Name, &hostsCSV, &s.Status, &s.ContainerId, &s.ImageID, &s.Network, &s.Port)
 	if err != nil {
 		return nil, err
 	}
+
+	s.Hosts = []string{}
+	for _, host := range strings.Split(hostsCSV, ",") {
+		if host != "" {
+			s.Hosts = append(s.Hosts, host)
+		}
+	}
+
 	return &s, nil
 }
 
