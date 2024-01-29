@@ -82,7 +82,9 @@ func main() {
 			RevProxy: make(map[string]*httputil.ReverseProxy),
 			Services: []*models.Service{},
 		},
-		dClient: dClient,
+		images:   &models.ImageModel{DB: db},
+		services: &models.ServiceModel{DB: db},
+		dClient:  dClient,
 	}
 
 	mux := http.NewServeMux()

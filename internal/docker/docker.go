@@ -93,8 +93,8 @@ func (c *Client) createNetwork(name string) error {
 	return nil
 }
 
-func (c *Client) CreateContainer(service models.Service) (container.CreateResponse, error) {
-	if err := c.pullImage(service.Image); err != nil {
+func (c *Client) CreateContainer(service models.Service, image models.Image) (container.CreateResponse, error) {
+	if err := c.pullImage(image); err != nil {
 		return container.CreateResponse{}, err
 	}
 
@@ -103,7 +103,7 @@ func (c *Client) CreateContainer(service models.Service) (container.CreateRespon
 	}
 
 	resp, err := c.client.ContainerCreate(context.Background(), &container.Config{
-		Image: service.Image.String(),
+		Image: image.String(),
 	}, &container.HostConfig{
 		NetworkMode: container.NetworkMode(service.Network),
 	}, nil, nil, service.Name)

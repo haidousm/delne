@@ -9,8 +9,19 @@ import (
 )
 
 func (app *application) servicesTableView(w http.ResponseWriter, r *http.Request) {
-	services := app.proxy.Services
-	component := ServicesDashboard(services)
+	services, err := app.services.GetAll()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	images, err := app.images.GetAll()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	app.logger.Debug("services", "services", services, "images", images)
+	component := ServicesDashboard(services, images)
 	templ.Handler(component).ServeHTTP(w, r)
 }
 
@@ -21,7 +32,19 @@ func (app *application) createServiceFormView(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	component := servicesTable(app.proxy.Services, true)
+	services, err := app.services.GetAll()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	images, err := app.images.GetAll()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	component := servicesTable(services, images, true)
 	component.Render(r.Context(), w)
 }
 
@@ -45,17 +68,28 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 	imageObj := models.Image{}
 	imageObj.ParseString(image)
 
+	imageId, err := app.images.Insert(imageObj.Repository, imageObj.Name, imageObj.Tag)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
 	network := "delne" //temp, should be configurable
 	service := models.Service{
 		Name:    name,
-		Image:   imageObj,
+		ImageID: imageId,
 		Hosts:   []string{host},
 		Network: network,
 		Status:  models.PULLING,
 	}
 
 	app.logger.Debug("creating service", "name", name, "image", image, "host", host)
-	app.proxy.Services = append(app.proxy.Services, &service)
+	serviceId, err := app.services.Insert(name, []string{host}, imageId, network)
+
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 
 	for _, host := range service.Hosts {
 		app.proxy.Target[host] = service.Name
@@ -68,15 +102,15 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	go func() {
-		resp, err := app.dClient.CreateContainer(service)
+		resp, err := app.dClient.CreateContainer(service, imageObj)
 
 		if err != nil {
 			app.logger.Error(err.Error())
 			return
 		}
-		service.Status = models.CREATED
+		app.services.UpdateStatus(serviceId, models.CREATED)
+		app.services.UpdateContainerId(serviceId, resp.ID)
 
-		service.ContainerId = resp.ID
 		app.logger.Debug("created container", "id", resp.ID)
 
 		err = app.dClient.StartContainer(service)
@@ -84,11 +118,11 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 			app.logger.Error(err.Error())
 			return
 		}
-		service.Status = models.RUNNING
+		app.services.UpdateStatus(serviceId, models.RUNNING)
 		app.logger.Debug("started container", "id", resp.ID)
 	}()
 
-	component := servicesTableRow(service)
+	component := servicesTableRow(service, imageObj)
 	component.Render(r.Context(), w)
 }
 
@@ -131,9 +165,9 @@ func (app *application) startService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	service := app.GetService(name)
-	if service == nil {
-		app.clientError(w, http.StatusNotFound)
+	service, err := app.services.GetByName(name)
+	if err != nil {
+		app.serverError(w, r, err)
 		return
 	}
 
@@ -142,13 +176,14 @@ func (app *application) startService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := app.dClient.StartContainer(*service)
+	err = app.dClient.StartContainer(*service)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
 	service.Status = models.RUNNING
+	app.services.UpdateStatus(service.ID, models.RUNNING)
 
 	onlyPartial := r.Header.Get("HX-Request") == "true"
 	if !onlyPartial {
@@ -156,44 +191,50 @@ func (app *application) startService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	component := servicesTableRow(*service)
-	component.Render(r.Context(), w)
-}
-
-func (app *application) stopService(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
-	name := params.ByName("name")
-
-	if name == "" {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
-
-	service := app.GetService(name)
-	if service == nil {
-		app.clientError(w, http.StatusNotFound)
-		return
-	}
-
-	if service.Status != models.RUNNING {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
-
-	err := app.dClient.StopContainer(*service)
+	image, err := app.images.Get(service.ImageID)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
-	service.Status = models.STOPPED
-
-	onlyPartial := r.Header.Get("HX-Request") == "true"
-	if !onlyPartial {
-		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
-		return
-	}
-
-	component := servicesTableRow(*service)
+	component := servicesTableRow(*service, *image)
 	component.Render(r.Context(), w)
 }
+
+// func (app *application) stopService(w http.ResponseWriter, r *http.Request) {
+// 	params := httprouter.ParamsFromContext(r.Context())
+// 	name := params.ByName("name")
+
+// 	if name == "" {
+// 		app.clientError(w, http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	service := app.GetService(name)
+// 	if service == nil {
+// 		app.clientError(w, http.StatusNotFound)
+// 		return
+// 	}
+
+// 	if service.Status != models.RUNNING {
+// 		app.clientError(w, http.StatusBadRequest)
+// 		return
+// 	}
+
+// 	err := app.dClient.StopContainer(*service)
+// 	if err != nil {
+// 		app.serverError(w, r, err)
+// 		return
+// 	}
+
+// 	service.Status = models.STOPPED
+
+// 	onlyPartial := r.Header.Get("HX-Request") == "true"
+// 	if !onlyPartial {
+// 		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
+// 		return
+// 	}
+
+// 	component := servicesTableRow(*service)
+// 	component.Render(r.Context(), w)
+// }
