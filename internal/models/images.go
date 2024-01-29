@@ -61,7 +61,7 @@ type ImageModel struct {
 }
 
 func (m *ImageModel) Insert(repository string, name string, tag string) (int, error) {
-	stmt := `INSERT INTO images (repository, name, tag) VALUES ($1, $2, $3) RETURNING id`
+	stmt := `INSERT INTO images (repository, name, tag, created) VALUES ($1, $2, $3, datetime('now')) RETURNING id`
 	var id int
 	err := m.DB.QueryRow(stmt, repository, name, tag).Scan(&id)
 	if err != nil {

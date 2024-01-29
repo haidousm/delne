@@ -12,49 +12,23 @@ import (
 type Proxy struct {
 	Target   map[string]string
 	RevProxy map[string]*httputil.ReverseProxy
-	Services []*models.Service
 }
 
-func (app *application) GetService(name string) *models.Service {
-	proxy := app.proxy
-	for _, s := range proxy.Services {
-		if s.Name == name {
-			return s
-		}
-	}
-	return nil
-}
+func (app *application) RemoveService(service models.Service) {
 
-func (app *application) RemoveService(name string) error {
-	service := app.GetService(name)
-	if service == nil {
-		return errors.New("service not found")
-	}
-
-	proxy := app.proxy
-	for i, s := range proxy.Services {
-		if s.Name == name {
-			proxy.Services = append(proxy.Services[:i], proxy.Services[i+1:]...)
+	for k, v := range app.proxy.Target {
+		if v == service.Name {
+			delete(app.proxy.Target, k)
 			break
 		}
 	}
 
-	for k, v := range proxy.Target {
-		if v == name {
-			delete(proxy.Target, k)
+	for k := range app.proxy.RevProxy {
+		if k == service.Name {
+			delete(app.proxy.RevProxy, k)
 			break
 		}
 	}
-
-	for k := range proxy.RevProxy {
-		if k == name {
-			delete(proxy.RevProxy, k)
-			break
-		}
-	}
-
-	err := app.dClient.RemoveContainer(*service)
-	return err
 }
 
 func (app *application) proxyRequest(w http.ResponseWriter, r *http.Request) {
@@ -63,6 +37,12 @@ func (app *application) proxyRequest(w http.ResponseWriter, r *http.Request) {
 	host := r.Host
 	if r.URL.Path != "/" {
 		host += r.URL.Path
+	}
+
+	services, err := app.services.GetAll()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
 	}
 
 	// prefix matching
@@ -82,7 +62,7 @@ func (app *application) proxyRequest(w http.ResponseWriter, r *http.Request) {
 
 				// find service with name == target
 				var service *models.Service
-				for _, s := range p.Services {
+				for _, s := range services {
 					if s.Name == target {
 						service = s
 						break
@@ -110,7 +90,7 @@ func (app *application) proxyRequest(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	err := errors.New("forbidden host")
+	err = errors.New("forbidden host")
 	app.logger.Error(err.Error())
 	app.notFound(w)
 }

@@ -80,7 +80,6 @@ func main() {
 				"foo.com/test": "http://localhost:8020",
 			},
 			RevProxy: make(map[string]*httputil.ReverseProxy),
-			Services: []*models.Service{},
 		},
 		images:   &models.ImageModel{DB: db},
 		services: &models.ServiceModel{DB: db},
