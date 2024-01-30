@@ -6,6 +6,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 
+	"github.com/docker/docker/api/types"
 	"github.com/haidousm/delne/internal/models"
 )
 
@@ -92,4 +93,47 @@ func (app *application) proxyRequest(w http.ResponseWriter, r *http.Request) {
 	err = errors.New("forbidden host")
 	app.logger.Error(err.Error())
 	app.notFound(w)
+}
+
+func (app *application) rebuildProxyFromDB() {
+
+	containers, err := app.dClient.ListContainers()
+	if err != nil {
+		app.logger.Error(err.Error())
+		return
+	}
+
+	filtered := []types.Container{}
+	for _, c := range containers {
+		if c.HostConfig.NetworkMode == "delne" && c.Names[0][1:] != "delne" {
+			filtered = append(filtered, c)
+		}
+	}
+
+	for _, c := range filtered {
+		app.dClient.RemoveContainerById(c.ID)
+	}
+
+	services, err := app.services.GetAll()
+	if err != nil {
+		app.logger.Error(err.Error())
+		return
+	}
+
+	images, err := app.images.GetAll()
+	if err != nil {
+		app.logger.Error(err.Error())
+		return
+	}
+
+	for _, service := range services {
+		var image *models.Image
+		for _, i := range images {
+			if i.ID == *service.ImageID {
+				image = i
+				break
+			}
+		}
+		go app.createContainerForService(service, image)
+	}
 }

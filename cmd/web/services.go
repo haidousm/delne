@@ -85,48 +85,20 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 
 	app.logger.Debug("creating service", "name", name, "image", image, "host", host)
 	serviceId, err := app.services.Insert(name, []string{host}, imageId, network)
+	service.ID = serviceId
 
 	if err != nil {
 		app.serverError(w, r, err)
 		return
 	}
 
-	for _, host := range service.Hosts {
-		app.proxy.Target[host] = service.Name
-	}
+	go app.createContainerForService(&service, &imageObj)
 
 	onlyPartial := r.Header.Get("HX-Request") == "true"
 	if !onlyPartial {
 		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
 		return
 	}
-
-	go func() {
-		resp, err := app.dClient.CreateContainer(service, imageObj)
-
-		if err != nil {
-			app.logger.Error(err.Error())
-			return
-		}
-		app.services.UpdateStatus(serviceId, models.CREATED)
-		app.services.UpdateContainerId(serviceId, resp.ID)
-
-		service, err := app.services.Get(serviceId)
-		if err != nil {
-			app.logger.Error(err.Error())
-			return
-		}
-
-		app.logger.Debug("created container", "id", resp.ID)
-
-		err = app.dClient.StartContainer(*service)
-		if err != nil {
-			app.logger.Error(err.Error())
-			return
-		}
-		app.services.UpdateStatus(serviceId, models.RUNNING)
-		app.logger.Debug("started container", "id", resp.ID)
-	}()
 
 	component := servicesTableRow(service, imageObj)
 	component.Render(r.Context(), w)
@@ -253,4 +225,36 @@ func (app *application) stopService(w http.ResponseWriter, r *http.Request) {
 
 	component := servicesTableRow(*service, *image)
 	component.Render(r.Context(), w)
+}
+
+func (app *application) createContainerForService(service *models.Service, image *models.Image) {
+
+	resp, err := app.dClient.CreateContainer(*service, *image)
+
+	if err != nil {
+		app.logger.Error(err.Error())
+		return
+	}
+	app.services.UpdateStatus(service.ID, models.CREATED)
+	app.services.UpdateContainerId(service.ID, resp.ID)
+
+	service, err = app.services.Get(service.ID)
+	if err != nil {
+		app.logger.Error(err.Error())
+		return
+	}
+
+	app.logger.Debug("created container", "id", resp.ID)
+
+	err = app.dClient.StartContainer(*service)
+	if err != nil {
+		app.logger.Error(err.Error())
+		return
+	}
+	app.services.UpdateStatus(service.ID, models.RUNNING)
+	app.logger.Debug("started container", "id", resp.ID)
+
+	for _, host := range service.Hosts {
+		app.proxy.Target[host] = service.Name
+	}
 }
