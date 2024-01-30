@@ -73,7 +73,7 @@ func (m *ImageModel) Insert(repository string, name string, tag string) (int, er
 func (m *ImageModel) Get(id int) (*Image, error) {
 	stmt := `SELECT id, repository, name, tag FROM images WHERE id = $1`
 	var i Image
-	err := m.DB.QueryRow(stmt, id).Scan(&i)
+	err := m.DB.QueryRow(stmt, id).Scan(&i.ID, &i.Repository, &i.Name, &i.Tag)
 	if err != nil {
 		return nil, err
 	}

@@ -44,6 +44,8 @@ type ServiceModelInterface interface {
 
 	UpdateStatus(id int, status ServiceStatus) error
 	UpdateContainerId(id int, containerId string) error
+
+	Delete(id int) error
 }
 
 type ServiceModel struct {
@@ -146,6 +148,15 @@ func (m *ServiceModel) UpdateStatus(id int, status ServiceStatus) error {
 func (m *ServiceModel) UpdateContainerId(id int, containerId string) error {
 	stmt := `UPDATE services SET container_id = $1 WHERE id = $2`
 	_, err := m.DB.Exec(stmt, containerId, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *ServiceModel) Delete(id int) error {
+	stmt := `DELETE FROM services WHERE id = $1`
+	_, err := m.DB.Exec(stmt, id)
 	if err != nil {
 		return err
 	}
