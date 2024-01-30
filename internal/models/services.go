@@ -23,9 +23,9 @@ type Service struct {
 	Hosts []string
 
 	Status      ServiceStatus
-	ContainerId string
-	ImageID     int
-	Network     string
+	ContainerId *string
+	ImageID     *int
+	Network     *string
 	Port        *string
 
 	Created time.Time

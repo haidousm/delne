@@ -77,9 +77,9 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 	network := "delne" //temp, should be configurable
 	service := models.Service{
 		Name:    name,
-		ImageID: imageId,
+		ImageID: &imageId,
 		Hosts:   []string{host},
-		Network: network,
+		Network: &network,
 		Status:  models.PULLING,
 	}
 
@@ -200,7 +200,7 @@ func (app *application) startService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	image, err := app.images.Get(service.ImageID)
+	image, err := app.images.Get(*service.ImageID)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
@@ -245,7 +245,7 @@ func (app *application) stopService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	image, err := app.images.Get(service.ImageID)
+	image, err := app.images.Get(*service.ImageID)
 	if err != nil {
 		app.serverError(w, r, err)
 		return
