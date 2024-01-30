@@ -101,8 +101,9 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
-	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
+	app.rebuildProxyFromDB()
 
+	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
 	err = srv.ListenAndServe()
 	logger.Error(err.Error())
 	os.Exit(1)

@@ -143,7 +143,11 @@ func (c *Client) RemoveContainer(service models.Service) error {
 		return nil
 	}
 
-	err := c.client.ContainerRemove(context.Background(), *service.ContainerId, types.ContainerRemoveOptions{Force: true})
+	return c.RemoveContainerById(*service.ContainerId)
+}
+
+func (c *Client) RemoveContainerById(id string) error {
+	err := c.client.ContainerRemove(context.Background(), id, types.ContainerRemoveOptions{Force: true})
 	if err != nil {
 		return err
 	}
@@ -173,4 +177,9 @@ func (c *Client) GetContainerPorts(service models.Service) []string {
 		ports = append(ports, string(p.Port()))
 	}
 	return ports
+}
+
+func (c *Client) ListContainers() ([]types.Container, error) {
+	containers, err := c.client.ContainerList(context.Background(), types.ContainerListOptions{})
+	return containers, err
 }
