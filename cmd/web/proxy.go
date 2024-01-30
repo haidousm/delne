@@ -15,7 +15,6 @@ type Proxy struct {
 }
 
 func (app *application) RemoveService(service models.Service) {
-
 	for k, v := range app.proxy.Target {
 		if v == service.Name {
 			delete(app.proxy.Target, k)

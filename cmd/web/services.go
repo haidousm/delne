@@ -111,9 +111,15 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 		app.services.UpdateStatus(serviceId, models.CREATED)
 		app.services.UpdateContainerId(serviceId, resp.ID)
 
+		service, err := app.services.Get(serviceId)
+		if err != nil {
+			app.logger.Error(err.Error())
+			return
+		}
+
 		app.logger.Debug("created container", "id", resp.ID)
 
-		err = app.dClient.StartContainer(service)
+		err = app.dClient.StartContainer(*service)
 		if err != nil {
 			app.logger.Error(err.Error())
 			return
@@ -127,33 +133,36 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) deleteService(w http.ResponseWriter, r *http.Request) {
-	// params := httprouter.ParamsFromContext(r.Context())
-	// name := params.ByName("name")
+	params := httprouter.ParamsFromContext(r.Context())
+	name := params.ByName("name")
 
-	// if name == "" {
-	// 	app.clientError(w, http.StatusBadRequest)
-	// 	return
-	// }
+	if name == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
 
-	// service := app.GetService(name)
-	// if service == nil {
-	// 	app.clientError(w, http.StatusNotFound)
-	// 	return
-	// }
+	service, err := app.services.GetByName(name)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 
-	// err := app.RemoveService(name)
-	// if err != nil {
-	// 	app.serverError(w, r, err)
-	// 	return
-	// }
+	app.dClient.RemoveContainer(*service)
+	app.RemoveService(*service)
 
-	// onlyPartial := r.Header.Get("HX-Request") == "true"
-	// if !onlyPartial {
-	// 	http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
-	// 	return
-	// }
+	err = app.services.Delete(service.ID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 
-	// w.WriteHeader(http.StatusOK)
+	onlyPartial := r.Header.Get("HX-Request") == "true"
+	if !onlyPartial {
+		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (app *application) startService(w http.ResponseWriter, r *http.Request) {
@@ -201,40 +210,47 @@ func (app *application) startService(w http.ResponseWriter, r *http.Request) {
 	component.Render(r.Context(), w)
 }
 
-// func (app *application) stopService(w http.ResponseWriter, r *http.Request) {
-// 	params := httprouter.ParamsFromContext(r.Context())
-// 	name := params.ByName("name")
+func (app *application) stopService(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	name := params.ByName("name")
 
-// 	if name == "" {
-// 		app.clientError(w, http.StatusBadRequest)
-// 		return
-// 	}
+	if name == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
 
-// 	service := app.GetService(name)
-// 	if service == nil {
-// 		app.clientError(w, http.StatusNotFound)
-// 		return
-// 	}
+	service, err := app.services.GetByName(name)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 
-// 	if service.Status != models.RUNNING {
-// 		app.clientError(w, http.StatusBadRequest)
-// 		return
-// 	}
+	if service.Status != models.RUNNING {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
 
-// 	err := app.dClient.StopContainer(*service)
-// 	if err != nil {
-// 		app.serverError(w, r, err)
-// 		return
-// 	}
+	err = app.dClient.StopContainer(*service)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
 
-// 	service.Status = models.STOPPED
+	service.Status = models.STOPPED
+	app.services.UpdateStatus(service.ID, models.STOPPED)
 
-// 	onlyPartial := r.Header.Get("HX-Request") == "true"
-// 	if !onlyPartial {
-// 		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
-// 		return
-// 	}
+	onlyPartial := r.Header.Get("HX-Request") == "true"
+	if !onlyPartial {
+		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
+		return
+	}
 
-// 	component := servicesTableRow(*service)
-// 	component.Render(r.Context(), w)
-// }
+	image, err := app.images.Get(service.ImageID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	component := servicesTableRow(*service, *image)
+	component.Render(r.Context(), w)
+}
