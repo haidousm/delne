@@ -98,14 +98,14 @@ func (c *Client) CreateContainer(service models.Service, image models.Image) (co
 		return container.CreateResponse{}, err
 	}
 
-	if err := c.createNetwork(service.Network); err != nil {
+	if err := c.createNetwork(*service.Network); err != nil {
 		return container.CreateResponse{}, err
 	}
 
 	resp, err := c.client.ContainerCreate(context.Background(), &container.Config{
 		Image: image.String(),
 	}, &container.HostConfig{
-		NetworkMode: container.NetworkMode(service.Network),
+		NetworkMode: container.NetworkMode(*service.Network),
 	}, nil, nil, service.Name)
 
 	if err != nil {
@@ -115,11 +115,11 @@ func (c *Client) CreateContainer(service models.Service, image models.Image) (co
 }
 
 func (c *Client) StartContainer(service models.Service) error {
-	if service.ContainerId == "" {
+	if service.ContainerId == nil {
 		return errors.New("container id is empty")
 	}
 
-	err := c.client.ContainerStart(context.Background(), service.ContainerId, types.ContainerStartOptions{})
+	err := c.client.ContainerStart(context.Background(), *service.ContainerId, types.ContainerStartOptions{})
 	if err != nil {
 		return err
 	}
@@ -127,11 +127,11 @@ func (c *Client) StartContainer(service models.Service) error {
 }
 
 func (c *Client) StopContainer(service models.Service) error {
-	if service.ContainerId == "" {
+	if service.ContainerId == nil {
 		return errors.New("container id is empty")
 	}
 
-	err := c.client.ContainerStop(context.Background(), service.ContainerId, container.StopOptions{})
+	err := c.client.ContainerStop(context.Background(), *service.ContainerId, container.StopOptions{})
 	if err != nil {
 		return err
 	}
@@ -139,11 +139,11 @@ func (c *Client) StopContainer(service models.Service) error {
 }
 
 func (c *Client) RemoveContainer(service models.Service) error {
-	if service.ContainerId == "" {
+	if service.ContainerId == nil {
 		return nil
 	}
 
-	err := c.client.ContainerRemove(context.Background(), service.ContainerId, types.ContainerRemoveOptions{Force: true})
+	err := c.client.ContainerRemove(context.Background(), *service.ContainerId, types.ContainerRemoveOptions{Force: true})
 	if err != nil {
 		return err
 	}
@@ -151,11 +151,11 @@ func (c *Client) RemoveContainer(service models.Service) error {
 }
 
 func (c *Client) inspectContainer(service models.Service) (types.ContainerJSON, error) {
-	if service.ContainerId == "" {
+	if service.ContainerId == nil {
 		return types.ContainerJSON{}, nil
 	}
 
-	resp, err := c.client.ContainerInspect(context.Background(), service.ContainerId)
+	resp, err := c.client.ContainerInspect(context.Background(), *service.ContainerId)
 	if err != nil {
 		return types.ContainerJSON{}, err
 	}

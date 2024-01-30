@@ -40,3 +40,18 @@ audit:
 # 	go mod verify
 # 	@echo 'Vendoring dependencies...'
 # 	go mod vendor
+
+.PHONY: migration/up
+migration/up:
+	@echo 'Running migrations...'
+	migrate -path ./migrations -database ${DATABASE_URL} up
+
+.PHONY: migration/down
+migration/down:
+	@echo 'Rolling back migrations...'
+	migrate -path ./migrations -database ${DATABASE_URL} down
+
+.PHONY: migration/new
+migration/new:
+	@echo 'Creating new migration...'
+	migrate create -ext sql -dir ./migrations -seq ${NAME}
