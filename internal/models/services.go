@@ -32,6 +32,9 @@ type Service struct {
 }
 
 func (s *Service) Url() string {
+	if s.Port == nil {
+		return fmt.Sprintf("http://%s", s.Name)
+	}
 	return fmt.Sprintf("http://%s:%s", s.Name, *s.Port)
 }
 
@@ -44,6 +47,7 @@ type ServiceModelInterface interface {
 
 	UpdateStatus(id int, status ServiceStatus) error
 	UpdateContainerId(id int, containerId string) error
+	UpdatePort(id int, port string) error
 
 	Delete(id int) error
 }
@@ -148,6 +152,15 @@ func (m *ServiceModel) UpdateStatus(id int, status ServiceStatus) error {
 func (m *ServiceModel) UpdateContainerId(id int, containerId string) error {
 	stmt := `UPDATE services SET container_id = $1 WHERE id = $2`
 	_, err := m.DB.Exec(stmt, containerId, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *ServiceModel) UpdatePort(id int, port string) error {
+	stmt := `UPDATE services SET port = $1 WHERE id = $2`
+	_, err := m.DB.Exec(stmt, port, id)
 	if err != nil {
 		return err
 	}

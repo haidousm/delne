@@ -252,8 +252,20 @@ func (app *application) createContainerForService(service *models.Service, image
 		return
 	}
 	app.services.UpdateStatus(service.ID, models.RUNNING)
-	app.logger.Debug("started container", "id", resp.ID)
 
+	ports := app.dClient.GetContainerPorts(*service)
+	if len(ports) == 0 {
+		app.logger.Error("no ports found for container", "id", resp.ID)
+		return
+	}
+
+	service.Port = &ports[0]
+	err = app.services.UpdatePort(service.ID, *service.Port)
+	if err != nil {
+		app.logger.Error(err.Error())
+		return
+	}
+	app.logger.Debug("started container", "id", resp.ID, "port", *service.Port)
 	for _, host := range service.Hosts {
 		app.proxy.Target[host] = service.Name
 	}
