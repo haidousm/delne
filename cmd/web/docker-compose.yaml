@@ -1,0 +1,14 @@
+version: "3"
+networks:
+  delne:
+    name: delne
+services:
+  delne:
+    image: haidousm/delne:0.1.0-amd64
+    ports:
+      - 80:4000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: always
+    networks:
+      - delne
