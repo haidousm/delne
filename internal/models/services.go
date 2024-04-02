@@ -39,7 +39,7 @@ func (s *Service) Url() string {
 }
 
 type ServiceModelInterface interface {
-	Insert(name string, hosts []string, image int, network string) (int, error)
+	Insert(name string, hosts []string, image int, network string, port string) (int, error)
 	Get(id int) (*Service, error)
 	GetAll() ([]*Service, error)
 
@@ -56,15 +56,15 @@ type ServiceModel struct {
 	DB *sql.DB
 }
 
-func (m *ServiceModel) Insert(name string, hosts []string, image_id int, network string) (int, error) {
+func (m *ServiceModel) Insert(name string, hosts []string, image_id int, network string, port string) (int, error) {
 
 	hostsCSV := ""
 	for _, host := range hosts {
 		hostsCSV += host + ","
 	}
-	stmt := `INSERT INTO services (name, hosts, image_id, network, status, created) VALUES ($1, $2, $3, $4, $5, datetime('now')) RETURNING id`
+	stmt := `INSERT INTO services (name, hosts, image_id, network, port, status, created) VALUES ($1, $2, $3, $4, $5, $6, datetime('now')) RETURNING id`
 	var id int
-	err := m.DB.QueryRow(stmt, name, hostsCSV, image_id, network, PULLING).Scan(&id)
+	err := m.DB.QueryRow(stmt, name, hostsCSV, image_id, network, port, PULLING).Scan(&id)
 	if err != nil {
 		return 0, err
 	}

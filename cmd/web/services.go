@@ -1,7 +1,9 @@
 package main
 
 import (
+	"math/rand"
 	"net/http"
+	"strconv"
 
 	"github.com/a-h/templ"
 	"github.com/haidousm/delne/internal/models"
@@ -74,17 +76,20 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	network := "delne" //temp, should be configurable
+	network := "delne"                   // TODO: temp should be configurable
+	port := rand.Intn(65535-1024) + 1024 // TODO: temp generate random port number, maybe incr some counter instead
+	portStr := strconv.Itoa(port)
 	service := models.Service{
 		Name:    name,
 		ImageID: &imageId,
 		Hosts:   []string{host},
 		Network: &network,
 		Status:  models.PULLING,
+		Port:    &portStr,
 	}
 
-	app.logger.Debug("creating service", "name", name, "image", image, "host", host)
-	serviceId, err := app.services.Insert(name, []string{host}, imageId, network)
+	app.logger.Debug("creating service", "name", name, "image", image, "host", host, "network", network, "port", portStr)
+	serviceId, err := app.services.Insert(name, []string{host}, imageId, network, portStr)
 	service.ID = serviceId
 
 	if err != nil {
@@ -253,18 +258,6 @@ func (app *application) createContainerForService(service *models.Service, image
 	}
 	app.services.UpdateStatus(service.ID, models.RUNNING)
 
-	ports := app.dClient.GetContainerPorts(*service)
-	if len(ports) == 0 {
-		app.logger.Error("no ports found for container", "id", resp.ID)
-		return
-	}
-
-	service.Port = &ports[0]
-	err = app.services.UpdatePort(service.ID, *service.Port)
-	if err != nil {
-		app.logger.Error(err.Error())
-		return
-	}
 	app.logger.Debug("started container", "id", resp.ID, "port", *service.Port)
 	for _, host := range service.Hosts {
 		app.proxy.Target[host] = service.Name
