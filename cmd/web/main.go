@@ -42,7 +42,7 @@ func main() {
 	var cfg config
 
 	dsn := flag.String(cfg.dsn, "file:delne.db", "SQLite3 data source name")
-	flag.IntVar(&cfg.port, "port", 4000, "server port")
+	flag.IntVar(&cfg.port, "port", 80, "server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
 	displayVersion := flag.Bool("version", false, "Display version and exit")

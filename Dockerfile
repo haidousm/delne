@@ -8,6 +8,6 @@ COPY . ./
 RUN make build/web
 
 
-EXPOSE 4000
+EXPOSE 80
 
 CMD ["./bin/web"]
