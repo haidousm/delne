@@ -1,3 +1,9 @@
+REGISTRY ?= docker.io
+REPOSITORY ?= haidousm
+IMAGE_NAME ?= delne
+VERSION ?= development-amd64
+PLATFORM ?= linux/amd64
+
 ## help: print this help message
 .PHONY: help
 help:
@@ -17,6 +23,22 @@ dev/web:
 build/web:
 	@echo 'Building cmd/web...'
 	go build -ldflags='-s -w' -o=./bin/web ./cmd/web
+
+## docker/build: build the docker image (amd64)
+.PHONY: docker/build
+docker/build:
+	@echo 'Building docker image...'
+	docker build -t ${REGISTRY}/${REPOSITORY}/${IMAGE_NAME}:${VERSION} --platform ${PLATFORM}  -f ./Dockerfile .
+
+## docker/push: push the docker image to the registry
+.PHONY: docker/push
+docker/push:
+	@echo 'Pushing docker image...'
+	docker push ${REGISTRY}/${REPOSITORY}/${IMAGE_NAME}:${VERSION}
+
+## docker/release: build and push the docker image
+.PHONY: docker/release
+docker/release: docker/build docker/push
 
 ## audit: tidy dependencies and format, vet and test all code
 .PHONY: audit
