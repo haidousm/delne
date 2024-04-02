@@ -10,5 +10,6 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     restart: always
+    pull_policy: always
     networks:
       - delne
