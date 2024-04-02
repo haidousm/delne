@@ -9,7 +9,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
-	"github.com/docker/go-connections/nat"
 	"github.com/haidousm/delne/internal/models"
 )
 
@@ -105,9 +104,6 @@ func (c *Client) CreateContainer(service models.Service, image models.Image) (co
 
 	resp, err := c.client.ContainerCreate(context.Background(), &container.Config{
 		Image: image.String(),
-		ExposedPorts: map[nat.Port]struct{}{
-			nat.Port(*service.Port): {},
-		},
 	}, &container.HostConfig{
 		NetworkMode: container.NetworkMode(*service.Network),
 	}, nil, nil, service.Name)
