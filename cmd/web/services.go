@@ -48,6 +48,31 @@ func (app *application) createServiceFormView(w http.ResponseWriter, r *http.Req
 	component.Render(r.Context(), w)
 }
 
+func (app *application) editServiceView(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	name := params.ByName("name")
+
+	if name == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	service, err := app.services.GetByName(name)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	images, err := app.images.GetAll()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	component := editServiceForm(*service, images)
+	component.Render(r.Context(), w)
+}
+
 func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 
 	err := r.ParseForm()
