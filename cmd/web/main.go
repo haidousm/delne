@@ -66,7 +66,7 @@ func main() {
 	}
 	defer db.Close()
 
-	dClient, err := docker.NewClient()
+	dClient, err := docker.NewClient(logger)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)

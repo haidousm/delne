@@ -2,28 +2,33 @@ package docker
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
-	"sync"
-	"time"
+	"fmt"
+	"io"
+	"log/slog"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
+	"github.com/docker/docker/pkg/jsonmessage"
 	"github.com/haidousm/delne/internal/models"
 )
 
 type Client struct {
 	client *client.Client
+	logger *slog.Logger
 }
 
-func NewClient() (*Client, error) {
+func NewClient(logger *slog.Logger) (*Client, error) {
 	// create docker client
 	client, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Client{client: client}, nil
+	dLogger := logger.With("source", "docker")
+	return &Client{client: client, logger: dLogger}, nil
 }
 
 func (c *Client) pullImage(image models.Image) error {
@@ -34,19 +39,24 @@ func (c *Client) pullImage(image models.Image) error {
 
 	defer reader.Close()
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func(wg *sync.WaitGroup) {
-		time.Sleep(1 * time.Second)
-		if err := reader.Close(); err != nil {
-			panic(err)
+	decoder := json.NewDecoder(reader)
+	for {
+		var progressMessage jsonmessage.JSONMessage
+		if err := decoder.Decode(&progressMessage); err != nil {
+			if err == io.EOF {
+				// EOF is expected when the pull is complete
+				return nil
+			}
+
+			// if err, try to skip the message and continue
+			decoder.Buffered().Read(make([]byte, 1))
+			continue
 		}
-		if c.imageExists(image) {
-			wg.Done()
+		if progressMessage.Error != nil {
+			return fmt.Errorf(progressMessage.Error.Message)
 		}
-	}(&wg)
-	wg.Wait()
-	return nil
+		c.logger.Debug("pulling image", "status", progressMessage.Status)
+	}
 }
 
 func (c *Client) listImages() []types.ImageSummary {
@@ -94,20 +104,23 @@ func (c *Client) createNetwork(name string) error {
 }
 
 func (c *Client) CreateContainer(service models.Service, image models.Image) (container.CreateResponse, error) {
+
+	c.logger.Debug("creating container", "service", service.Name, "image", image.String())
 	if err := c.pullImage(image); err != nil {
 		return container.CreateResponse{}, err
 	}
-
+	c.logger.Debug("image pulled", "service", service.Name, "image", image.String())
 	if err := c.createNetwork(*service.Network); err != nil {
 		return container.CreateResponse{}, err
 	}
+	c.logger.Debug("network created", "service", service.Name, "network", *service.Network)
 
 	resp, err := c.client.ContainerCreate(context.Background(), &container.Config{
 		Image: image.String(),
 	}, &container.HostConfig{
 		NetworkMode: container.NetworkMode(*service.Network),
 	}, nil, nil, service.Name)
-
+	c.logger.Debug("container created", "service", service.Name, "container", resp.ID)
 	if err != nil {
 		return container.CreateResponse{}, err
 	}
