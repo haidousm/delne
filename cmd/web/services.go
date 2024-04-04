@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/a-h/templ"
@@ -70,6 +71,19 @@ func (app *application) editServiceView(w http.ResponseWriter, r *http.Request) 
 	}
 
 	component := editServiceForm(*service, *image)
+	component.Render(r.Context(), w)
+}
+
+func (app *application) addEnvVarView(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	name := params.ByName("name")
+
+	if name == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	component := addEnvVarForm()
 	component.Render(r.Context(), w)
 }
 
@@ -189,8 +203,11 @@ func (app *application) updateService(w http.ResponseWriter, r *http.Request) {
 
 	envVars := make(map[string]string)
 	for key, value := range r.PostForm {
+		fmt.Println(key, value[0])
 		if len(key) > 4 && key[:4] == "env-" {
 			envVars[key[4:]] = value[0]
+		} else if key == "new-env-key" {
+			envVars[value[0]] = r.PostForm.Get("new-env-value")
 		}
 	}
 
