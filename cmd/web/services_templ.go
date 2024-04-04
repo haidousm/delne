@@ -606,34 +606,34 @@ func editServiceForm(service models.Service, images []*models.Image) templ.Compo
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
-		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</label><ul role=\"list\" class=\"divide-y divide-gray-100 w-1/2\">")
+		_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</label><ul role=\"list\" class=\"mt-3 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3\">")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
 		for _, host := range service.Hosts {
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<li class=\"flex justify-between gap-x-6 py-5 items-center\"><div class=\"flex min-w-0 gap-x-4\"><div class=\"min-w-0 flex-auto\"><p class=\"text-sm leading-6 text-gray-900\">")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("<li class=\"col-span-1 flex rounded-md shadow-sm\"><div class=\"flex flex-1 items-center justify-between truncate rounded-md border border-gray-200 bg-white\"><div class=\"flex flex-1 items-center justify-between truncate px-4 py-2 text-sm\"><p class=\"font-medium text-gray-900 hover:text-gray-600\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
 			var templ_7745c5c3_Var37 string
 			templ_7745c5c3_Var37, templ_7745c5c3_Err = templ.JoinStringErrs(host)
 			if templ_7745c5c3_Err != nil {
-				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/services.templ`, Line: 226, Col: 59}
+				return templ.Error{Err: templ_7745c5c3_Err, FileName: `cmd/web/services.templ`, Line: 226, Col: 73}
 			}
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ.EscapeString(templ_7745c5c3_Var37))
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</p></div></div><div class=\"hidden shrink-0 sm:flex sm:flex-col sm:items-end\"><a href=\"#\" class=\"text-sm text-red-600 hover:text-red-900 ml-4\" hx-delete=\"\" hx-confirm=\"Are you sure you want to delete this host?\">")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</p><a href=\"#\" class=\"text-sm text-red-600 hover:text-red-900 ml-4\" hx-delete=\"\" hx-confirm=\"Are you sure you want to delete this host?\">")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			templ_7745c5c3_Var38 := `Delete`
+			templ_7745c5c3_Var38 := `X`
 			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString(templ_7745c5c3_Var38)
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
-			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a></div></li>")
+			_, templ_7745c5c3_Err = templ_7745c5c3_Buffer.WriteString("</a></div></div></li>")
 			if templ_7745c5c3_Err != nil {
 				return templ_7745c5c3_Err
 			}
