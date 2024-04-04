@@ -55,7 +55,6 @@ templ servicesTable(services []*models.Service, images []*models.Image, showForm
 			<div class="sm:flex sm:items-center">
 				<div class="sm:flex-auto">
 					<h1 class="text-base font-semibold leading-6 text-gray-900">Services</h1>
-					// <p class="mt-2 text-sm text-gray-700">A list of all the users in your account including their name, title, email and role.</p>
 				</div>
 				<div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
 					<button type="button" class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" hx-get="/admin/service/new" hx-target="#services-table">Add service</button>
@@ -165,29 +164,6 @@ templ createServiceFormRow() {
 	</tr>
 }
 
-templ ServicesDashboard(services []*models.Service, images []*models.Image) {
-	<html class="h-full">
-		<head>
-			<title>Delne</title>
-			<script src="https://cdn.tailwindcss.com/3.4.3"></script>
-			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
-		</head>
-		<body class="h-full">
-			<div class="min-h-full">
-				@navbar([]string{"Dashboard"}, "Dashboard")
-				<div class="py-10">
-					// @header("Dashboard")
-					<main>
-						<div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
-							@servicesTable(services, images, false)
-						</div>
-					</main>
-				</div>
-			</div>
-		</body>
-	</html>
-}
-
 templ editServiceForm(service models.Service, image models.Image) {
 	<form>
 		<div class="grid grid-cols-1 gap-x-8 gap-y-10 p-12">
@@ -237,7 +213,13 @@ templ editServiceForm(service models.Service, image models.Image) {
 						<div class="flex items-center justify-between px-5 border-b border-gray-900/5 bg-gray-50">
 							<div class="flex items-center gap-x-4 border-b border-gray-900/5 bg-gray-50 p-6">
 								<div class="text-sm font-medium leading-6 text-gray-900">Environment Variables</div>
-								<button type="button" class="rounded-full bg-white p-1 text-gray-900 shadow-xl hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+								<button
+									type="button"
+									class="rounded-full bg-white p-1 text-gray-900 shadow-xl hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+									hx-get={ templ.EscapeString(fmt.Sprintf("/admin/services/%s/env", service.Name)) }
+									hx-target="#env-vars-list"
+									hx-swap="beforeend"
+								>
 									<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
 										<path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"></path>
 									</svg>
@@ -255,7 +237,10 @@ templ editServiceForm(service models.Service, image models.Image) {
 								</svg>
 							</button>
 						</div>
-						<dl class="-my-3 divide-y divide-gray-100 px-6 py-4 text-sm leading-6">
+						<dl
+							class="-my-3 divide-y divide-gray-100 px-6 py-4 text-sm leading-6"
+							id="env-vars-list"
+						>
 							// loop over key value map of env vars
 							for key, value := range(*service.EnvironmentVariables) {
 								<div class="flex justify-between gap-x-4 py-3">
@@ -276,4 +261,44 @@ templ editServiceForm(service models.Service, image models.Image) {
 			</div>
 		</div>
 	</form>
+}
+
+templ addEnvVarForm() {
+	<div class="flex justify-between gap-x-4 py-3">
+		<input
+			class="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20 w-1/4"
+			type="text"
+			name="new-env-key"
+			placeholder="Key"
+		/>
+		<input
+			class="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20 w-1/2"
+			type="text"
+			name="new-env-value"
+			placeholder="Value"
+		/>
+	</div>
+}
+
+templ ServicesDashboard(services []*models.Service, images []*models.Image) {
+	<html class="h-full">
+		<head>
+			<title>Delne</title>
+			<script src="https://cdn.tailwindcss.com/3.4.3"></script>
+			<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+		</head>
+		<body class="h-full">
+			<div class="min-h-full">
+				@navbar([]string{"Dashboard"}, "Dashboard")
+				<div class="py-10">
+					// @header("Dashboard")
+					<main>
+						<div class="mx-auto max-w-7xl sm:px-6 lg:px-8">
+							@servicesTable(services, images, false)
+						</div>
+					</main>
+				</div>
+			</div>
+		</body>
+	</html>
 }
