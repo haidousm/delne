@@ -30,6 +30,7 @@ func (app *application) routes() http.Handler {
 
 	router.HandlerFunc(http.MethodGet, "/admin/services", app.servicesTableView)
 	router.HandlerFunc(http.MethodGet, "/admin/service/new", app.createServiceFormView)
+	router.HandlerFunc(http.MethodGet, "/admin/services/:name/edit", app.editServiceView)
 
 	standardMiddleware := alice.New(app.recoverPanic, app.logRequest) // app.secureHeaders
 	return standardMiddleware.Then(router)
