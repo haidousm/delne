@@ -290,6 +290,14 @@ func (app *application) createContainerForService(service *models.Service, image
 		app.logger.Error(err.Error())
 		return
 	}
+
+	envVars := app.dClient.GetContainerEnv(*service)
+	err = app.services.UpdateEnvironmentVariables(service.ID, envVars)
+	if err != nil {
+		app.logger.Error(err.Error())
+		return
+	}
+
 	app.logger.Debug("started container", "id", resp.ID, "port", *service.Port)
 	for _, host := range service.Hosts {
 		app.proxy.Target[host] = service.Name
