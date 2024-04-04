@@ -10,5 +10,7 @@ CREATE TABLE services (
   image_id INTEGER NOT NULL,
   network TEXT NOT NULL,
   port TEXT,
+  -- TODO: maybe foreign key, current stringified JSON
+  environment_variables TEXT NOT NULL,
   created DATETIME NOT NULL
 );

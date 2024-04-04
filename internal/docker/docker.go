@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -190,6 +191,20 @@ func (c *Client) GetContainerPorts(service models.Service) []string {
 		ports = append(ports, string(p.Port()))
 	}
 	return ports
+}
+
+func (c *Client) GetContainerEnv(service models.Service) map[string]string {
+	env := map[string]string{}
+	resp, err := c.inspectContainer(service)
+	if err != nil {
+		return env
+	}
+
+	for _, e := range resp.Config.Env {
+		pair := strings.Split(e, "=")
+		env[pair[0]] = pair[1]
+	}
+	return env
 }
 
 func (c *Client) ListContainers() ([]types.Container, error) {
