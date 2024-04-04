@@ -116,11 +116,22 @@ func (c *Client) CreateContainer(service models.Service, image models.Image) (co
 	}
 	c.logger.Debug("network created", "service", service.Name, "network", *service.Network)
 
-	resp, err := c.client.ContainerCreate(context.Background(), &container.Config{
+	config := &container.Config{
 		Image: image.String(),
-	}, &container.HostConfig{
+	}
+	hostConfig := &container.HostConfig{
 		NetworkMode: container.NetworkMode(*service.Network),
-	}, nil, nil, service.Name)
+	}
+
+	if service.EnvironmentVariables != nil && len(*service.EnvironmentVariables) > 0 {
+		env := []string{}
+		for k, v := range *service.EnvironmentVariables {
+			env = append(env, fmt.Sprintf("%s=%s", k, v))
+		}
+		config.Env = env
+	}
+
+	resp, err := c.client.ContainerCreate(context.Background(), config, hostConfig, nil, nil, service.Name)
 	c.logger.Debug("container created", "service", service.Name, "container", resp.ID)
 	if err != nil {
 		return container.CreateResponse{}, err
