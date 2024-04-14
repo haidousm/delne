@@ -22,7 +22,6 @@ type Client struct {
 }
 
 func NewClient(logger *slog.Logger) (*Client, error) {
-	// create docker client
 	client, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, err
