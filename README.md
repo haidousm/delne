@@ -9,10 +9,10 @@ Delne is Arabic for "show me the way". It is a simple reverse proxy with a web i
 - [x] Support subpath matching & stripping
 - [x] Ability add new services
 - [x] Ability to delete services
-- [ ] Custom environment variables
+- [x] Custom environment variables
+- [ ] Auto-gen SSL certs using Let's Encrypt (ACME) maybe using [this](https://github.com/foomo/simplecert)
 - [ ] Ability to edit existing services
 - [ ] Add multi-host support
-- [ ] Auto-gen SSL certs using Let's Encrypt (ACME) maybe using [this](https://github.com/foomo/simplecert)
 - [ ] Add authentication to the web interface
 - [ ] Add ability to add custom headers to the request
 - [ ] Add docker orchestration
