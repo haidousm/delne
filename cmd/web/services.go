@@ -70,6 +70,12 @@ func (app *application) editServiceView(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	onlyPartial := r.Header.Get("HX-Request") == "true"
+	if !onlyPartial {
+		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
+		return
+	}
+
 	component := editServiceForm(*service, *image)
 	component.Render(r.Context(), w)
 }
@@ -174,76 +180,6 @@ func (app *application) deleteService(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-}
-
-func (app *application) updateService(w http.ResponseWriter, r *http.Request) {
-	params := httprouter.ParamsFromContext(r.Context())
-	name := params.ByName("name")
-
-	if name == "" {
-		app.clientError(w, http.StatusBadRequest)
-		return
-	}
-
-	service, err := app.services.GetByName(name)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	err = r.ParseForm()
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	/**
-	 * TODO: currently only supports updating environment variables, make it not just do that lol
-	 */
-
-	envVars := make(map[string]string)
-	for key, value := range r.PostForm {
-		fmt.Println(key, value[0])
-		if len(key) > 4 && key[:4] == "env-" {
-			envVars[key[4:]] = value[0]
-		} else if key == "new-env-key" {
-			envVars[value[0]] = r.PostForm.Get("new-env-value")
-		}
-	}
-
-	service.EnvironmentVariables = &envVars
-	err = app.dClient.RemoveContainer(*service)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	err = app.services.UpdateStatus(service.ID, models.STOPPED)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-	err = app.services.UpdateEnvironmentVariables(service.ID, envVars)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	image, err := app.images.Get(*service.ImageID)
-	if err != nil {
-		app.serverError(w, r, err)
-		return
-	}
-
-	go app.createContainerForService(service, image)
-	onlyPartial := r.Header.Get("HX-Request") == "true"
-	if !onlyPartial {
-		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
-		return
-	}
-
-	component := editServiceForm(*service, *image)
-	component.Render(r.Context(), w)
 }
 
 func (app *application) startService(w http.ResponseWriter, r *http.Request) {
@@ -386,4 +322,143 @@ func (app *application) createContainerForService(service *models.Service, image
 	for _, host := range service.Hosts {
 		app.proxy.Target[host] = service.Name
 	}
+}
+
+/**
+* Env Var Management
+ */
+
+func (app *application) updateService(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	name := params.ByName("name")
+
+	if name == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	service, err := app.services.GetByName(name)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	/**
+	 * TODO: currently only supports updating environment variables, make it not just do that lol
+	 */
+
+	envVars := make(map[string]string)
+	for key, value := range r.PostForm {
+		fmt.Println(key, value[0])
+		if len(key) > 4 && key[:4] == "env-" {
+			envVars[key[4:]] = value[0]
+		} else if key == "new-env-key" {
+			envVars[value[0]] = r.PostForm.Get("new-env-value")
+		}
+	}
+
+	service.EnvironmentVariables = &envVars
+	err = app.dClient.RemoveContainer(*service)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	err = app.services.UpdateStatus(service.ID, models.STOPPED)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+	err = app.services.UpdateEnvironmentVariables(service.ID, envVars)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	image, err := app.images.Get(*service.ImageID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	go app.createContainerForService(service, image)
+	onlyPartial := r.Header.Get("HX-Request") == "true"
+	if !onlyPartial {
+		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
+		return
+	}
+
+	component := editServiceForm(*service, *image)
+	component.Render(r.Context(), w)
+}
+
+func (app *application) deleteEnvVar(w http.ResponseWriter, r *http.Request) {
+	params := httprouter.ParamsFromContext(r.Context())
+	name := params.ByName("name")
+	key := params.ByName("key")
+
+	if name == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	if key == "" {
+		app.clientError(w, http.StatusBadRequest)
+		return
+	}
+
+	service, err := app.services.GetByName(name)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	err = r.ParseForm()
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	envVars := *service.EnvironmentVariables
+	delete(envVars, key)
+
+	err = app.dClient.RemoveContainer(*service)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	err = app.services.UpdateStatus(service.ID, models.STOPPED)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	err = app.services.UpdateEnvironmentVariables(service.ID, envVars)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	image, err := app.images.Get(*service.ImageID)
+	if err != nil {
+		app.serverError(w, r, err)
+		return
+	}
+
+	go app.createContainerForService(service, image)
+	onlyPartial := r.Header.Get("HX-Request") == "true"
+	if !onlyPartial {
+		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
+		return
+	}
+
+	component := editServiceForm(*service, *image)
+	component.Render(r.Context(), w)
 }
