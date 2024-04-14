@@ -55,7 +55,6 @@ templ servicesTable(services []*models.Service, images []*models.Image, showForm
 			<div class="sm:flex sm:items-center">
 				<div class="sm:flex-auto">
 					<h1 class="text-base font-semibold leading-6 text-gray-900">Services</h1>
-					// <p class="mt-2 text-sm text-gray-700">A list of all the users in your account including their name, title, email and role.</p>
 				</div>
 				<div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
 					<button type="button" class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600" hx-get="/admin/service/new" hx-target="#services-table">Add service</button>
@@ -134,7 +133,12 @@ templ servicesTableRow(service models.Service, image models.Image) {
 			}
 		</td>
 		<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-			// <a href={ templ.SafeURL(fmt.Sprintf("/admin/services/%s/edit", service.Name)) } class="disabled:text-indigo-600 disabled:hover:text-indigo-900 bg-slate-50 text-slate-500 border-slate-200 cursor-not-allowed pointer-events-none" hx-boost="true">Edit</a>
+			<a
+				href={ templ.SafeURL(fmt.Sprintf("/admin/services/%s/edit", service.Name)) }
+				class="text-indigo-600 hover:text-indigo-900"
+				hx-boost="true"
+				hx-target="#services-table table"
+			>Edit</a>
 			<a href="#" class="text-red-600 hover:text-red-900 ml-4" hx-delete={ templ.EscapeString(fmt.Sprintf("/admin/api/services/%s", service.Name)) } hx-confirm="Are you sure you want to delete this service?">Delete</a>
 		</td>
 	</tr>
@@ -153,6 +157,13 @@ templ createServiceFormRow() {
 				<input type="text" name="host" class="rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" placeholder="enter host"/>
 			</td>
 			<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
+				<button
+					class="hidden rounded-md bg-green-600 p-2 text-white hover:bg-green-900 disabled:cursor-not-allowed disabled:bg-gray-600 disabled:hover:bg-gray-600"
+				>
+					Spacing Button
+				</button>
+			</td>
+			<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
 				<a href="/admin/services" class="text-gray-600 hover:text-gray-900 mr-4" hx-boost="true">Cancel</a>
 				<button class="text-indigo-600 hover:text-indigo-900" hx-post="/admin/api/services" hx-include="closest tr" hx-target="#create-service-row" hx-swap="outerHTML" hx-replace-url="/admin/services">Save</button>
 			</td>
@@ -160,18 +171,124 @@ templ createServiceFormRow() {
 	</tr>
 }
 
-// templ editServiceFormRow(service *docker.Service) {
-// 	<tr id="edit-service-row">
-// 		<form>
-// 			<td class="whitespace-nowrap text-sm font-medium text-gray-900 sm:pl-6 w-[400px]">{ service.Name }</td>
-// 			<td class="whitespace-nowrap text-sm text-gray-500 w-[400px]"><input type="text" name="target" class="rounded-md border-0 py-1.5 px-2 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6" value={ target }/></td>
-// 			<td class="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
-// 				<a href="/admin/proxies" class="text-gray-600 hover:text-gray-900 mr-4" hx-boost="true">Cancel</a>
-// 				<button class="text-indigo-600 hover:text-indigo-900" hx-put={ fmt.Sprintf("/admin/api/proxies/%s", host) } hx-include="closest tr" hx-target="#edit-proxy-row" hx-swap="outerHTML" hx-replace-url="/admin/proxies">Save</button>
-// 			</td>
-// 		</form>
-// 	</tr>
-// }
+templ editServiceForm(service models.Service, image models.Image) {
+	<form>
+		<div class="grid grid-cols-1 gap-x-8 gap-y-10 p-12">
+			<div class="grid max-w-full grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6 md:col-span-2">
+				<div class="sm:col-span-4">
+					<label for="name" class="block text-sm font-medium leading-6 text-gray-900">Name</label>
+					<div class="mt-2">
+						<input
+							type="text"
+							name="name"
+							class="block rounded-md border-0 px-2 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+							value={ service.Name }
+							disabled
+						/>
+					</div>
+				</div>
+				<div class="sm:col-span-4">
+					<label for="image" class="block text-sm font-medium leading-6 text-gray-900">Image</label>
+					<div class="mt-2">
+						<input
+							type="text"
+							name="image"
+							class="block rounded-md border-0 px-2 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
+							value={ image.String() }
+							disabled
+						/>
+					</div>
+				</div>
+				<div class="sm:col-span-4">
+					<label for="image" class="block text-sm font-medium leading-6 text-gray-900">Hosts</label>
+					<ul role="list" class="mt-3 grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6 lg:grid-cols-3">
+						for _, host := range(service.Hosts) {
+							<li class="col-span-1 flex rounded-md shadow-sm">
+								<div class="flex flex-1 items-center justify-between truncate rounded-md border border-gray-200 bg-white">
+									<div class="flex flex-1 items-center justify-between truncate px-4 py-2 text-sm">
+										<p class="font-medium text-gray-900 hover:text-gray-600">{ host }</p>
+										// undo disabled/hidden when delete is implemented
+										<a href="#" class="text-sm text-red-600 hover:text-red-900 ml-4 pointer-events-none hidden" hx-delete="" hx-confirm="Are you sure you want to delete this host?" disabled>X</a>
+									</div>
+								</div>
+							</li>
+						}
+					</ul>
+				</div>
+				<div class="sm:col-span-4">
+					<div class="overflow-hidden rounded-xl border border-gray-200">
+						<div class="flex items-center justify-between px-5 border-b border-gray-900/5 bg-gray-50">
+							<div class="flex items-center gap-x-4 border-b border-gray-900/5 bg-gray-50 p-6">
+								<div class="text-sm font-medium leading-6 text-gray-900">Environment Variables</div>
+								<button
+									type="button"
+									class="rounded-full bg-white p-1 text-gray-900 shadow-xl hover:bg-gray-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+									hx-get={ templ.EscapeString(fmt.Sprintf("/admin/services/%s/env", service.Name)) }
+									hx-target="#env-vars-list"
+									hx-swap="beforeend"
+								>
+									<svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+										<path d="M10.75 4.75a.75.75 0 00-1.5 0v4.5h-4.5a.75.75 0 000 1.5h4.5v4.5a.75.75 0 001.5 0v-4.5h4.5a.75.75 0 000-1.5h-4.5v-4.5z"></path>
+									</svg>
+								</button>
+							</div>
+							<button
+								type="button"
+								class="inline-flex items-center gap-x-1.5 rounded-md bg-indigo-600 px-2.5 py-1.5 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+								hx-put={ templ.EscapeString(fmt.Sprintf("/admin/api/services/%s", service.Name)) }
+								hx-target="#services-table form"
+							>
+								Save
+								<svg class="-mr-0.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+									<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.857-9.809a.75.75 0 00-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 10-1.06 1.061l2.5 2.5a.75.75 0 001.137-.089l4-5.5z" clip-rule="evenodd"></path>
+								</svg>
+							</button>
+						</div>
+						<dl
+							class="-my-3 divide-y divide-gray-100 px-6 py-4 text-sm leading-6"
+							id="env-vars-list"
+						>
+							for key, value := range(*service.EnvironmentVariables) {
+								<div class="flex justify-between gap-x-4 py-3">
+									<dt class="text-gray-500 w-1/3">{ key }</dt>
+									<dd class="w-1/2">
+										<input
+											class="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20 w-full"
+											value={ value }
+											type="text"
+											name={ fmt.Sprintf("env-%s", key) }
+										/>
+									</dd>
+									<dt>
+										<a href="#" class="text-red-600 hover:text-red-900 ml-4" hx-delete={ templ.EscapeString(fmt.Sprintf("/admin/api/services/%s/env/%s", service.Name, key)) } hx-confirm="Are you sure you want to delete this variable?" hx-target="#services-table form">Delete</a>
+									</dt>
+								</div>
+							}
+						</dl>
+					</div>
+				</div>
+			</div>
+		</div>
+	</form>
+}
+
+templ addEnvVarForm() {
+	<div class="flex justify-between gap-x-4 py-3">
+		<input
+			class="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20 w-1/4"
+			type="text"
+			name="new-env-key"
+			placeholder="Key"
+		/>
+		<input
+			class="inline-flex items-center rounded-md bg-green-500/10 px-2 py-1 text-xs font-medium text-green-400 ring-1 ring-inset ring-green-500/20 w-1/2"
+			type="text"
+			name="new-env-value"
+			placeholder="Value"
+		/>
+	</div>
+}
+
 templ ServicesDashboard(services []*models.Service, images []*models.Image) {
 	<html class="h-full">
 		<head>
