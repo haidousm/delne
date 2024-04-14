@@ -2,6 +2,7 @@ package models
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -28,6 +29,8 @@ type Service struct {
 	Network     *string
 	Port        *string
 
+	EnvironmentVariables *map[string]string
+
 	Created time.Time
 }
 
@@ -49,6 +52,8 @@ type ServiceModelInterface interface {
 	UpdateContainerId(id int, containerId string) error
 	UpdatePort(id int, port string) error
 
+	UpdateEnvironmentVariables(id int, envVars map[string]string) error
+
 	Delete(id int) error
 }
 
@@ -62,7 +67,7 @@ func (m *ServiceModel) Insert(name string, hosts []string, image_id int, network
 	for _, host := range hosts {
 		hostsCSV += host + ","
 	}
-	stmt := `INSERT INTO services (name, hosts, image_id, network, status, created) VALUES ($1, $2, $3, $4, $5, datetime('now')) RETURNING id`
+	stmt := `INSERT INTO services (name, hosts, image_id, network, status, environment_variables, created) VALUES ($1, $2, $3, $4, $5, "{}", datetime('now')) RETURNING id`
 	var id int
 	err := m.DB.QueryRow(stmt, name, hostsCSV, image_id, network, PULLING).Scan(&id)
 	if err != nil {
@@ -72,10 +77,11 @@ func (m *ServiceModel) Insert(name string, hosts []string, image_id int, network
 }
 
 func (m *ServiceModel) Get(id int) (*Service, error) {
-	stmt := `SELECT id, name, hosts, status, container_id, image_id, network, port FROM services WHERE id = $1`
+	stmt := `SELECT id, name, hosts, status, container_id, image_id, network, port, environment_variables FROM services WHERE id = $1`
 	var s Service
 	hostsCSV := ""
-	err := m.DB.QueryRow(stmt, id).Scan(&s.ID, &s.Name, &hostsCSV, &s.Status, &s.ContainerId, &s.ImageID, &s.Network, &s.Port)
+	envVarsJSON := ""
+	err := m.DB.QueryRow(stmt, id).Scan(&s.ID, &s.Name, &hostsCSV, &s.Status, &s.ContainerId, &s.ImageID, &s.Network, &s.Port, &envVarsJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -85,11 +91,20 @@ func (m *ServiceModel) Get(id int) (*Service, error) {
 			s.Hosts = append(s.Hosts, host)
 		}
 	}
+
+	s.EnvironmentVariables = &map[string]string{}
+	if envVarsJSON != "" {
+		err = json.Unmarshal([]byte(envVarsJSON), s.EnvironmentVariables)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return &s, nil
 }
 
 func (m *ServiceModel) GetAll() ([]*Service, error) {
-	stmt := `SELECT id, name, hosts, status, container_id, image_id, network, port FROM services`
+	stmt := `SELECT id, name, hosts, status, container_id, image_id, network, port, environment_variables FROM services`
 	rows, err := m.DB.Query(stmt)
 	if err != nil {
 		return nil, err
@@ -100,8 +115,10 @@ func (m *ServiceModel) GetAll() ([]*Service, error) {
 	for rows.Next() {
 
 		hostsCSV := ""
+		envVarsJSON := ""
+
 		var s Service
-		err := rows.Scan(&s.ID, &s.Name, &hostsCSV, &s.Status, &s.ContainerId, &s.ImageID, &s.Network, &s.Port)
+		err := rows.Scan(&s.ID, &s.Name, &hostsCSV, &s.Status, &s.ContainerId, &s.ImageID, &s.Network, &s.Port, &envVarsJSON)
 		if err != nil {
 			return nil, err
 		}
@@ -109,6 +126,14 @@ func (m *ServiceModel) GetAll() ([]*Service, error) {
 		for _, host := range strings.Split(hostsCSV, ",") {
 			if host != "" {
 				s.Hosts = append(s.Hosts, host)
+			}
+		}
+
+		s.EnvironmentVariables = &map[string]string{}
+		if envVarsJSON != "" {
+			err = json.Unmarshal([]byte(envVarsJSON), s.EnvironmentVariables)
+			if err != nil {
+				return nil, err
 			}
 		}
 
@@ -121,11 +146,12 @@ func (m *ServiceModel) GetAll() ([]*Service, error) {
 }
 
 func (m *ServiceModel) GetByName(name string) (*Service, error) {
-	stmt := `SELECT id, name, hosts, status, container_id, image_id, network, port FROM services WHERE name = $1`
+	stmt := `SELECT id, name, hosts, status, container_id, image_id, network, port, environment_variables FROM services WHERE name = $1`
 
 	hostsCSV := ""
+	envVarsJSON := ""
 	var s Service
-	err := m.DB.QueryRow(stmt, name).Scan(&s.ID, &s.Name, &hostsCSV, &s.Status, &s.ContainerId, &s.ImageID, &s.Network, &s.Port)
+	err := m.DB.QueryRow(stmt, name).Scan(&s.ID, &s.Name, &hostsCSV, &s.Status, &s.ContainerId, &s.ImageID, &s.Network, &s.Port, &envVarsJSON)
 	if err != nil {
 		return nil, err
 	}
@@ -134,6 +160,14 @@ func (m *ServiceModel) GetByName(name string) (*Service, error) {
 	for _, host := range strings.Split(hostsCSV, ",") {
 		if host != "" {
 			s.Hosts = append(s.Hosts, host)
+		}
+	}
+
+	s.EnvironmentVariables = &map[string]string{}
+	if envVarsJSON != "" {
+		err = json.Unmarshal([]byte(envVarsJSON), s.EnvironmentVariables)
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -170,6 +204,21 @@ func (m *ServiceModel) UpdatePort(id int, port string) error {
 func (m *ServiceModel) Delete(id int) error {
 	stmt := `DELETE FROM services WHERE id = $1`
 	_, err := m.DB.Exec(stmt, id)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *ServiceModel) UpdateEnvironmentVariables(id int, envVars map[string]string) error {
+
+	envVarsJSON, err := json.Marshal(envVars)
+	if err != nil {
+		return err
+	}
+
+	stmt := `UPDATE services SET environment_variables = $1 WHERE id = $2`
+	_, err = m.DB.Exec(stmt, envVarsJSON, id)
 	if err != nil {
 		return err
 	}

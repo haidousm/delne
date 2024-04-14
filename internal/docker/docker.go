@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -21,7 +22,6 @@ type Client struct {
 }
 
 func NewClient(logger *slog.Logger) (*Client, error) {
-	// create docker client
 	client, err := client.NewClientWithOpts(client.FromEnv)
 	if err != nil {
 		return nil, err
@@ -115,11 +115,22 @@ func (c *Client) CreateContainer(service models.Service, image models.Image) (co
 	}
 	c.logger.Debug("network created", "service", service.Name, "network", *service.Network)
 
-	resp, err := c.client.ContainerCreate(context.Background(), &container.Config{
+	config := &container.Config{
 		Image: image.String(),
-	}, &container.HostConfig{
+	}
+	hostConfig := &container.HostConfig{
 		NetworkMode: container.NetworkMode(*service.Network),
-	}, nil, nil, service.Name)
+	}
+
+	if service.EnvironmentVariables != nil && len(*service.EnvironmentVariables) > 0 {
+		env := []string{}
+		for k, v := range *service.EnvironmentVariables {
+			env = append(env, fmt.Sprintf("%s=%s", k, v))
+		}
+		config.Env = env
+	}
+
+	resp, err := c.client.ContainerCreate(context.Background(), config, hostConfig, nil, nil, service.Name)
 	c.logger.Debug("container created", "service", service.Name, "container", resp.ID)
 	if err != nil {
 		return container.CreateResponse{}, err
@@ -190,6 +201,20 @@ func (c *Client) GetContainerPorts(service models.Service) []string {
 		ports = append(ports, string(p.Port()))
 	}
 	return ports
+}
+
+func (c *Client) GetContainerEnv(service models.Service) map[string]string {
+	env := map[string]string{}
+	resp, err := c.inspectContainer(service)
+	if err != nil {
+		return env
+	}
+
+	for _, e := range resp.Config.Env {
+		pair := strings.Split(e, "=")
+		env[pair[0]] = pair[1]
+	}
+	return env
 }
 
 func (c *Client) ListContainers() ([]types.Container, error) {
