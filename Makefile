@@ -16,6 +16,7 @@ confirm:
 ## dev/web: run the cmd/web application in dev mode (with air)
 .PHONY: dev/web
 dev/web:
+	@echo 'Running it in dev mode here will not actually do shit when you try to reach any of the services since its not running in docker (atm)'
 	air -c .air.toml
 
 ## build/web: build the cmd/web application
