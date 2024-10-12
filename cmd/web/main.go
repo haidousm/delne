@@ -4,12 +4,15 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
 	"os"
 	"time"
 
+	"github.com/foomo/simplecert"
+	"github.com/foomo/tlsconfig"
 	"github.com/haidousm/delne/internal/docker"
 	"github.com/haidousm/delne/internal/models"
 	"github.com/haidousm/delne/internal/vcs"
@@ -93,7 +96,7 @@ func main() {
 	standardMiddleware := alice.New(app.recoverPanic, app.logRequest)
 
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
+		Addr:         fmt.Sprintf(":%d", 443),
 		Handler:      standardMiddleware.Then(mux),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  5 * time.Second,
@@ -101,12 +104,11 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
-	app.rebuildProxyFromDB()
+	// app.rebuildProxyFromDB()
 
 	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
-	err = srv.ListenAndServe()
-	// err = simplecert.ListenAndServeTLSLocal(":443", standardMiddleware.Then(mux), nil, "delne.local", "foo.local", "localhost")
-	logger.Error(err.Error())
+	// srv.ListenAndServe()
+	listenAndServeTLS(srv, app)
 	os.Exit(1)
 }
 
@@ -123,4 +125,36 @@ func openDB(dsn string) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func listenAndServeTLS(srv *http.Server, app *application) {
+	cfg := simplecert.Default
+
+	if app.config.env == "development" {
+		cfg.Local = true
+	}
+
+	cfg.Domains = []string{"delne.local"}
+	cfg.CacheDir = "../../letsencrypt/live/delne.local"
+	cfg.SSLEmail = "haidous.m@gmail.com"
+
+	certLoader, err := simplecert.Init(cfg, nil)
+	if err != nil {
+		log.Fatal("simplecert init failed: ", err)
+	}
+
+	app.logger.Debug("starting redir from :80 to :443", "env", app.config.env)
+	errChan := make(chan error)
+	go func() {
+		errChan <- http.ListenAndServe(":80", http.HandlerFunc(simplecert.Redirect))
+	}()
+
+	tlsconf := tlsconfig.NewServerTLSConfig(tlsconfig.TLSModeServerStrict)
+	tlsconf.GetCertificate = certLoader.GetCertificateFunc()
+	srv.TLSConfig = tlsconf
+	app.logger.Debug("starting server at :443", "env", app.config.env)
+	go func() {
+		errChan <- srv.ListenAndServeTLS("", "")
+	}()
+	log.Fatal(<-errChan)
 }

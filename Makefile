@@ -13,17 +13,24 @@ help:
 confirm:
 	@echo -n 'Are you sure? [y/N] ' && read ans && [ $${ans:-N} = y ]
 
-## dev/web: run the cmd/web application in dev mode (with air)
-.PHONY: dev/web
-dev/web:
+## web/dev: run the cmd/web application in dev mode (with air)
+.PHONY: web/dev
+web/dev:
 	@echo 'Running it in dev mode here will not actually do shit when you try to reach any of the services since its not running in docker (atm)'
 	air -c .air.toml
 
-## build/web: build the cmd/web application
-.PHONY: build/web
-build/web:
+## web/build: build the cmd/web application
+.PHONY: web/build
+web/build:
 	@echo 'Building cmd/web...'
 	go build -ldflags='-s -w' -o=./bin/web ./cmd/web
+
+## web/run: run the cmd/web application
+.PHONY: web/run
+web/run:
+	$(MAKE) web/build
+	@echo 'Running cmd/web...'
+	./bin/web
 
 ## docker/build: build the docker image (amd64)
 .PHONY: docker/build
