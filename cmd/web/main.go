@@ -21,10 +21,10 @@ import (
 )
 
 type config struct {
-	port  int
 	env   string
 	debug bool
 	dsn   string
+	ssl   *simplecert.Config
 }
 
 type application struct {
@@ -45,12 +45,16 @@ func main() {
 	var cfg config
 
 	dsn := flag.String(cfg.dsn, "file:delne.db", "SQLite3 data source name")
-	flag.IntVar(&cfg.port, "port", 80, "server port")
 	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
 
 	displayVersion := flag.Bool("version", false, "Display version and exit")
 
 	flag.Parse()
+
+	cfg.ssl = simplecert.Default
+	cfg.ssl.Local = cfg.env == "development"
+	cfg.ssl.Domains = []string{"delne.local", "foo.local"}
+	cfg.ssl.SSLEmail = "haidous.m@gmail.com"
 
 	if *displayVersion {
 		fmt.Printf("Version:\t%s\n", version)
@@ -80,7 +84,7 @@ func main() {
 		logger: logger,
 		proxy: &Proxy{
 			Target: map[string]string{
-				"foo.com/test": "http://localhost:8020",
+				"foo.local/test": "http://localhost:8020",
 			},
 			RevProxy: make(map[string]*httputil.ReverseProxy),
 		},
@@ -106,7 +110,6 @@ func main() {
 
 	// app.rebuildProxyFromDB()
 
-	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
 	// srv.ListenAndServe()
 	listenAndServeTLS(srv, app)
 	os.Exit(1)
@@ -128,17 +131,7 @@ func openDB(dsn string) (*sql.DB, error) {
 }
 
 func listenAndServeTLS(srv *http.Server, app *application) {
-	cfg := simplecert.Default
-
-	if app.config.env == "development" {
-		cfg.Local = true
-	}
-
-	cfg.Domains = []string{"delne.local"}
-	cfg.CacheDir = "../../letsencrypt/live/delne.local"
-	cfg.SSLEmail = "haidous.m@gmail.com"
-
-	certLoader, err := simplecert.Init(cfg, nil)
+	certLoader, err := simplecert.Init(app.config.ssl, nil)
 	if err != nil {
 		log.Fatal("simplecert init failed: ", err)
 	}
