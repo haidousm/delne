@@ -5,9 +5,12 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 COPY . ./
-RUN make build/web
+RUN make web/build
 
+RUN curl -JLO "https://dl.filippo.io/mkcert/latest?for=linux/amd64"
+RUN chmod +x mkcert-v*-linux-amd64
+RUN cp mkcert-v*-linux-amd64 /usr/local/bin/mkcert
 
-EXPOSE 80
+EXPOSE 80 443
 
 CMD ["./bin/web"]

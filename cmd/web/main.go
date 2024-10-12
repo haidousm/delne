@@ -110,7 +110,6 @@ func main() {
 
 	// app.rebuildProxyFromDB()
 
-	// srv.ListenAndServe()
 	listenAndServeTLS(srv, app)
 	os.Exit(1)
 }
