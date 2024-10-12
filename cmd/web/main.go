@@ -11,6 +11,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/foomo/simplecert"
 	"github.com/foomo/tlsconfig"
 	"github.com/haidousm/delne/internal/docker"
@@ -21,10 +22,10 @@ import (
 )
 
 type config struct {
-	env   string
-	debug bool
-	dsn   string
-	ssl   *simplecert.Config
+	Env   string
+	Debug bool
+	DSN   string
+	SSL   *simplecert.Config
 }
 
 type application struct {
@@ -40,33 +41,34 @@ type application struct {
 var (
 	version = vcs.Version()
 )
+var (
+	cfgFile = "delne.toml"
+)
 
 func main() {
-	var cfg config
-
-	dsn := flag.String(cfg.dsn, "file:delne.db", "SQLite3 data source name")
-	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
-
 	displayVersion := flag.Bool("version", false, "Display version and exit")
-
 	flag.Parse()
-
-	cfg.ssl = simplecert.Default
-	cfg.ssl.Local = cfg.env == "development"
-	cfg.ssl.Domains = []string{"delne.local", "foo.local"}
-	cfg.ssl.SSLEmail = "haidous.m@gmail.com"
 
 	if *displayVersion {
 		fmt.Printf("Version:\t%s\n", version)
 		os.Exit(0)
 	}
 
+	var cfg config
+
+	_, err := toml.DecodeFile(cfgFile, &cfg)
+	if err != nil {
+		fmt.Printf(err.Error())
+		os.Exit(1)
+	}
+	cfg.SSL = mergeSSLConfig(simplecert.Default, cfg.SSL)
+
 	opts := &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
 
-	db, err := openDB(*dsn)
+	db, err := openDB(cfg.DSN)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
@@ -130,12 +132,12 @@ func openDB(dsn string) (*sql.DB, error) {
 }
 
 func listenAndServeTLS(srv *http.Server, app *application) {
-	certLoader, err := simplecert.Init(app.config.ssl, nil)
+	certLoader, err := simplecert.Init(app.config.SSL, nil)
 	if err != nil {
 		log.Fatal("simplecert init failed: ", err)
 	}
 
-	app.logger.Debug("starting redir from :80 to :443", "env", app.config.env)
+	app.logger.Debug("starting redir from :80 to :443", "env", app.config.Env)
 	errChan := make(chan error)
 	go func() {
 		errChan <- http.ListenAndServe(":80", http.HandlerFunc(simplecert.Redirect))
@@ -144,9 +146,58 @@ func listenAndServeTLS(srv *http.Server, app *application) {
 	tlsconf := tlsconfig.NewServerTLSConfig(tlsconfig.TLSModeServerStrict)
 	tlsconf.GetCertificate = certLoader.GetCertificateFunc()
 	srv.TLSConfig = tlsconf
-	app.logger.Debug("starting server at :443", "env", app.config.env)
+	app.logger.Debug("starting server at :443", "env", app.config.Env)
 	go func() {
 		errChan <- srv.ListenAndServeTLS("", "")
 	}()
 	log.Fatal(<-errChan)
+}
+
+func mergeSSLConfig(defaultConfig, customConfig *simplecert.Config) *simplecert.Config {
+	if customConfig == nil {
+		return defaultConfig
+	}
+
+	mergedConfig := *defaultConfig
+
+	if customConfig.SSLEmail != "" {
+		mergedConfig.SSLEmail = customConfig.SSLEmail
+	}
+	if customConfig.DirectoryURL != "" {
+		mergedConfig.DirectoryURL = customConfig.DirectoryURL
+	}
+	if customConfig.HTTPAddress != "" {
+		mergedConfig.HTTPAddress = customConfig.HTTPAddress
+	}
+	if customConfig.TLSAddress != "" {
+		mergedConfig.TLSAddress = customConfig.TLSAddress
+	}
+	if customConfig.CacheDir != "" {
+		mergedConfig.CacheDir = customConfig.CacheDir
+	}
+	if customConfig.DNSProvider != "" {
+		mergedConfig.DNSProvider = customConfig.DNSProvider
+	}
+
+	if len(customConfig.Domains) > 0 {
+		mergedConfig.Domains = customConfig.Domains
+	}
+	if len(customConfig.DNSServers) > 0 {
+		mergedConfig.DNSServers = customConfig.DNSServers
+	}
+
+	if customConfig.RenewBefore != 0 {
+		mergedConfig.RenewBefore = customConfig.RenewBefore
+	}
+	if customConfig.CheckInterval != 0 {
+		mergedConfig.CheckInterval = customConfig.CheckInterval
+	}
+	if customConfig.CacheDirPerm != 0 {
+		mergedConfig.CacheDirPerm = customConfig.CacheDirPerm
+	}
+
+	mergedConfig.Local = customConfig.Local
+	mergedConfig.UpdateHosts = customConfig.UpdateHosts
+
+	return &mergedConfig
 }
