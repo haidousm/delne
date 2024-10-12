@@ -17,6 +17,7 @@ confirm:
 .PHONY: web/dev
 web/dev:
 	@echo 'Running it in dev mode here will not actually do shit when you try to reach any of the services since its not running in docker (atm)'
+	@echo '!!!! AIR IS CURRENTLY BROKEN, USE web/run !!!!'
 	air -c .air.toml
 
 ## web/build: build the cmd/web application
@@ -30,6 +31,7 @@ web/build:
 web/run:
 	$(MAKE) web/build
 	@echo 'Running cmd/web...'
+	@echo '!!!! NEED SUDO ATM !!!!'
 	./bin/web
 
 ## docker/build: build the docker image (amd64)
