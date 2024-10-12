@@ -38,7 +38,7 @@ web/run:
 .PHONY: docker/build
 docker/build:
 	@echo 'Building docker image...'
-	docker build -t ${REGISTRY}/${REPOSITORY}/${IMAGE_NAME}:${VERSION} --platform ${PLATFORM}  -f ./Dockerfile .
+	DOCKER_BUILDKIT=1 docker buildx build -t ${REGISTRY}/${REPOSITORY}/${IMAGE_NAME}:${VERSION} --platform ${PLATFORM}  -f ./Dockerfile .
 
 ## docker/push: push the docker image to the registry
 .PHONY: docker/push

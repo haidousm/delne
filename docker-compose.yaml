@@ -4,11 +4,13 @@ networks:
     name: delne
 services:
   delne:
-    image: haidousm/delne:development-amd64
+    image: haidousm/delne:development-arm64
     ports:
       - 80:80
+      - 443:443
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - ./delne.toml:/src/app/delne.toml
     restart: always
     pull_policy: always
     networks:
