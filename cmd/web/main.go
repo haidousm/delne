@@ -21,11 +21,19 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type SSLConfig struct {
+	Local    bool
+	Email    string
+	CacheDir string
+
+	Domains []string
+}
+
 type config struct {
 	Env   string
 	Debug bool
 	DSN   string
-	SSL   *simplecert.Config
+	SSL   SSLConfig
 }
 
 type application struct {
@@ -55,13 +63,11 @@ func main() {
 	}
 
 	var cfg config
-
 	_, err := toml.DecodeFile(cfgFile, &cfg)
 	if err != nil {
 		fmt.Printf(err.Error())
 		os.Exit(1)
 	}
-	cfg.SSL = mergeSSLConfig(simplecert.Default, cfg.SSL)
 
 	opts := &slog.HandlerOptions{
 		Level: slog.LevelDebug,
@@ -132,7 +138,16 @@ func openDB(dsn string) (*sql.DB, error) {
 }
 
 func listenAndServeTLS(srv *http.Server, app *application) {
-	certLoader, err := simplecert.Init(app.config.SSL, nil)
+
+	scCfg := simplecert.Default
+	scCfg.Local = app.config.SSL.Local
+
+	scCfg.SSLEmail = app.config.SSL.Email
+	scCfg.CacheDir = app.config.SSL.CacheDir
+
+	scCfg.Domains = app.config.SSL.Domains
+
+	certLoader, err := simplecert.Init(scCfg, nil)
 	if err != nil {
 		log.Fatal("simplecert init failed: ", err)
 	}
@@ -151,53 +166,4 @@ func listenAndServeTLS(srv *http.Server, app *application) {
 		errChan <- srv.ListenAndServeTLS("", "")
 	}()
 	log.Fatal(<-errChan)
-}
-
-func mergeSSLConfig(defaultConfig, customConfig *simplecert.Config) *simplecert.Config {
-	if customConfig == nil {
-		return defaultConfig
-	}
-
-	mergedConfig := *defaultConfig
-
-	if customConfig.SSLEmail != "" {
-		mergedConfig.SSLEmail = customConfig.SSLEmail
-	}
-	if customConfig.DirectoryURL != "" {
-		mergedConfig.DirectoryURL = customConfig.DirectoryURL
-	}
-	if customConfig.HTTPAddress != "" {
-		mergedConfig.HTTPAddress = customConfig.HTTPAddress
-	}
-	if customConfig.TLSAddress != "" {
-		mergedConfig.TLSAddress = customConfig.TLSAddress
-	}
-	if customConfig.CacheDir != "" {
-		mergedConfig.CacheDir = customConfig.CacheDir
-	}
-	if customConfig.DNSProvider != "" {
-		mergedConfig.DNSProvider = customConfig.DNSProvider
-	}
-
-	if len(customConfig.Domains) > 0 {
-		mergedConfig.Domains = customConfig.Domains
-	}
-	if len(customConfig.DNSServers) > 0 {
-		mergedConfig.DNSServers = customConfig.DNSServers
-	}
-
-	if customConfig.RenewBefore != 0 {
-		mergedConfig.RenewBefore = customConfig.RenewBefore
-	}
-	if customConfig.CheckInterval != 0 {
-		mergedConfig.CheckInterval = customConfig.CheckInterval
-	}
-	if customConfig.CacheDirPerm != 0 {
-		mergedConfig.CacheDirPerm = customConfig.CacheDirPerm
-	}
-
-	mergedConfig.Local = customConfig.Local
-	mergedConfig.UpdateHosts = customConfig.UpdateHosts
-
-	return &mergedConfig
 }
