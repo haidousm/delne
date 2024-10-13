@@ -16,7 +16,7 @@ func (app *application) serverError(w http.ResponseWriter, r *http.Request, err 
 	app.logger.Error(err.Error(), "method", method, "uri", uri, "trace", trace)
 
 	errMessage := http.StatusText(http.StatusInternalServerError)
-	if app.config.debug {
+	if app.config.Debug {
 		errMessage = fmt.Sprintf("%s\n%s", err.Error(), trace)
 	}
 	http.Error(w, errMessage, http.StatusInternalServerError)

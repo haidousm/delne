@@ -4,12 +4,16 @@ import (
 	"database/sql"
 	"flag"
 	"fmt"
+	"log"
 	"log/slog"
 	"net/http"
 	"net/http/httputil"
 	"os"
 	"time"
 
+	"github.com/BurntSushi/toml"
+	"github.com/foomo/simplecert"
+	"github.com/foomo/tlsconfig"
 	"github.com/haidousm/delne/internal/docker"
 	"github.com/haidousm/delne/internal/models"
 	"github.com/haidousm/delne/internal/vcs"
@@ -17,11 +21,19 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
+type SSLConfig struct {
+	Local    bool
+	Email    string
+	CacheDir string
+
+	Domains []string
+}
+
 type config struct {
-	port  int
-	env   string
-	debug bool
-	dsn   string
+	Env   string
+	Debug bool
+	DSN   string
+	SSL   SSLConfig
 }
 
 type application struct {
@@ -37,16 +49,12 @@ type application struct {
 var (
 	version = vcs.Version()
 )
+var (
+	cfgFile = "delne.toml"
+)
 
 func main() {
-	var cfg config
-
-	dsn := flag.String(cfg.dsn, "file:delne.db", "SQLite3 data source name")
-	flag.IntVar(&cfg.port, "port", 80, "server port")
-	flag.StringVar(&cfg.env, "env", "development", "Environment (development|staging|production)")
-
 	displayVersion := flag.Bool("version", false, "Display version and exit")
-
 	flag.Parse()
 
 	if *displayVersion {
@@ -54,12 +62,19 @@ func main() {
 		os.Exit(0)
 	}
 
+	var cfg config
+	_, err := toml.DecodeFile(cfgFile, &cfg)
+	if err != nil {
+		fmt.Printf(err.Error())
+		os.Exit(1)
+	}
+
 	opts := &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
 
-	db, err := openDB(*dsn)
+	db, err := openDB(cfg.DSN)
 	if err != nil {
 		logger.Error(err.Error())
 		os.Exit(1)
@@ -77,7 +92,7 @@ func main() {
 		logger: logger,
 		proxy: &Proxy{
 			Target: map[string]string{
-				"foo.com/test": "http://localhost:8020",
+				"foo.local/test": "http://localhost:8020",
 			},
 			RevProxy: make(map[string]*httputil.ReverseProxy),
 		},
@@ -93,7 +108,7 @@ func main() {
 	standardMiddleware := alice.New(app.recoverPanic, app.logRequest)
 
 	srv := &http.Server{
-		Addr:         fmt.Sprintf(":%d", cfg.port),
+		Addr:         fmt.Sprintf(":%d", 443),
 		Handler:      standardMiddleware.Then(mux),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  5 * time.Second,
@@ -101,12 +116,9 @@ func main() {
 		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
 	}
 
-	app.rebuildProxyFromDB()
+	// app.rebuildProxyFromDB()
 
-	logger.Info("starting server", "addr", srv.Addr, "env", cfg.env)
-	err = srv.ListenAndServe()
-	// err = simplecert.ListenAndServeTLSLocal(":443", standardMiddleware.Then(mux), nil, "delne.local", "foo.local", "localhost")
-	logger.Error(err.Error())
+	listenAndServeTLS(srv, app)
 	os.Exit(1)
 }
 
@@ -123,4 +135,35 @@ func openDB(dsn string) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func listenAndServeTLS(srv *http.Server, app *application) {
+
+	scCfg := simplecert.Default
+	scCfg.Local = app.config.SSL.Local
+
+	scCfg.SSLEmail = app.config.SSL.Email
+	scCfg.CacheDir = app.config.SSL.CacheDir
+
+	scCfg.Domains = app.config.SSL.Domains
+
+	certLoader, err := simplecert.Init(scCfg, nil)
+	if err != nil {
+		log.Fatal("simplecert init failed: ", err)
+	}
+
+	app.logger.Debug("starting redir from :80 to :443", "env", app.config.Env)
+	errChan := make(chan error)
+	go func() {
+		errChan <- http.ListenAndServe(":80", http.HandlerFunc(simplecert.Redirect))
+	}()
+
+	tlsconf := tlsconfig.NewServerTLSConfig(tlsconfig.TLSModeServerStrict)
+	tlsconf.GetCertificate = certLoader.GetCertificateFunc()
+	srv.TLSConfig = tlsconf
+	app.logger.Debug("starting server at :443", "env", app.config.Env)
+	go func() {
+		errChan <- srv.ListenAndServeTLS("", "")
+	}()
+	log.Fatal(<-errChan)
 }

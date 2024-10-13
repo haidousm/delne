@@ -1,2 +1,4 @@
-tmp
+tmp/
 simplecert/
+bin/
+letsencrypt/

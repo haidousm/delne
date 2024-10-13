@@ -13,23 +13,32 @@ help:
 confirm:
 	@echo -n 'Are you sure? [y/N] ' && read ans && [ $${ans:-N} = y ]
 
-## dev/web: run the cmd/web application in dev mode (with air)
-.PHONY: dev/web
-dev/web:
+## web/dev: run the cmd/web application in dev mode (with air)
+.PHONY: web/dev
+web/dev:
 	@echo 'Running it in dev mode here will not actually do shit when you try to reach any of the services since its not running in docker (atm)'
+	@echo '!!!! AIR IS CURRENTLY BROKEN, USE web/run !!!!'
 	air -c .air.toml
 
-## build/web: build the cmd/web application
-.PHONY: build/web
-build/web:
+## web/build: build the cmd/web application
+.PHONY: web/build
+web/build:
 	@echo 'Building cmd/web...'
 	go build -ldflags='-s -w' -o=./bin/web ./cmd/web
+
+## web/run: run the cmd/web application
+.PHONY: web/run
+web/run:
+	$(MAKE) web/build
+	@echo 'Running cmd/web...'
+	@echo '!!!! NEED SUDO ATM !!!!'
+	./bin/web
 
 ## docker/build: build the docker image (amd64)
 .PHONY: docker/build
 docker/build:
 	@echo 'Building docker image...'
-	docker build -t ${REGISTRY}/${REPOSITORY}/${IMAGE_NAME}:${VERSION} --platform ${PLATFORM}  -f ./Dockerfile .
+	DOCKER_BUILDKIT=1 docker buildx build -t ${REGISTRY}/${REPOSITORY}/${IMAGE_NAME}:${VERSION} --platform ${PLATFORM}  -f ./Dockerfile .
 
 ## docker/push: push the docker image to the registry
 .PHONY: docker/push

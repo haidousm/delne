@@ -1,13 +1,28 @@
+FROM golang:1.21.5 AS builder
+WORKDIR /src/app
+
+RUN apt-get update && apt-get install -y make curl gcc
+
+ENV CGO_ENABLED=1
+
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
+
+COPY . .
+RUN make web/build
+
+RUN curl -JLO "https://dl.filippo.io/mkcert/latest?for=linux/amd64" && \
+    chmod +x mkcert-v*-linux-amd64 && \
+    mv mkcert-v*-linux-amd64 /usr/local/bin/mkcert
+
 FROM golang:1.21.5
 WORKDIR /src/app
 
-COPY go.mod go.sum ./
-RUN go mod download
+COPY --from=builder /src/app/bin/web /src/app/
+COPY --from=builder /usr/local/bin/mkcert /usr/local/bin/mkcert
 
-COPY . ./
-RUN make build/web
+EXPOSE 80 443
 
+CMD ["./web"]
 
-EXPOSE 80
-
-CMD ["./bin/web"]
