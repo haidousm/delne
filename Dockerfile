@@ -16,12 +16,8 @@ RUN curl -JLO "https://dl.filippo.io/mkcert/latest?for=linux/amd64" && \
     chmod +x mkcert-v*-linux-amd64 && \
     mv mkcert-v*-linux-amd64 /usr/local/bin/mkcert
 
-FROM debian:bullseye-slim
+FROM golang:1.21.5
 WORKDIR /src/app
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /src/app/bin/web /src/app/
 COPY --from=builder /usr/local/bin/mkcert /usr/local/bin/mkcert
