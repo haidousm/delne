@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strings"
 
 	"github.com/docker/docker/api/types"
 	"github.com/haidousm/delne/internal/models"
@@ -18,13 +19,8 @@ type Proxy struct {
 func (p *Proxy) GetDomains() []string {
 	uniqueDomains := make(map[string]bool)
 
-	for targetURL := range p.Target {
-		parsedURL, err := url.Parse(targetURL)
-		if err != nil {
-			continue
-		}
-
-		domain := parsedURL.Hostname()
+	for targetKey := range p.Target {
+		domain := parseDomain(targetKey)
 		if domain != "" {
 			uniqueDomains[domain] = true
 		}
@@ -34,18 +30,40 @@ func (p *Proxy) GetDomains() []string {
 	for domain := range uniqueDomains {
 		result = append(result, domain)
 	}
+
 	return result
+}
+
+func parseDomain(input string) string {
+	input = strings.TrimSpace(input)
+
+	if strings.HasPrefix(input, "http://") || strings.HasPrefix(input, "https://") {
+		parsedURL, err := url.Parse(input)
+		if err == nil {
+			return parsedURL.Hostname()
+		}
+	}
+
+	parts := strings.Split(input, "/")
+	domain := parts[0]
+
+	if colonIndex := strings.Index(domain, ":"); colonIndex != -1 {
+		domain = domain[:colonIndex]
+	}
+	return domain
 }
 
 func (app *application) AddTargetsFromService(service models.Service) {
 	for _, host := range service.Hosts {
 		app.proxy.Target[host] = service.Name
 	}
-	app.config.SSL.Domains = app.proxy.GetDomains()
 
+	app.config.SSL.Domains = app.proxy.GetDomains()
 	app.logger.Debug("reloading certs because domains changed", "domains", app.config.SSL.Domains)
 	err := app.dcl.ReloadCerts(app.config.SSL)
-	app.logger.Error("reloading certs failed", "err", err)
+	if err != nil {
+		app.logger.Error("reloading certs failed", "err", err)
+	}
 }
 
 func (app *application) RemoveService(service models.Service) {
