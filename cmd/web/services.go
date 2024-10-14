@@ -319,9 +319,7 @@ func (app *application) createContainerForService(service *models.Service, image
 	}
 
 	app.logger.Debug("started container", "id", resp.ID, "port", *service.Port)
-	for _, host := range service.Hosts {
-		app.proxy.Target[host] = service.Name
-	}
+	app.AddTargetsFromService(*service)
 }
 
 /**

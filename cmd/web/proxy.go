@@ -15,6 +15,36 @@ type Proxy struct {
 	RevProxy map[string]*httputil.ReverseProxy
 }
 
+func (p *Proxy) GetDomains() []string {
+	uniqueDomains := make(map[string]bool)
+
+	for targetURL := range p.Target {
+		parsedURL, err := url.Parse(targetURL)
+		if err != nil {
+			continue
+		}
+
+		domain := parsedURL.Hostname()
+		if domain != "" {
+			uniqueDomains[domain] = true
+		}
+	}
+
+	result := make([]string, 0, len(uniqueDomains))
+	for domain := range uniqueDomains {
+		result = append(result, domain)
+	}
+	return result
+}
+
+func (app *application) AddTargetsFromService(service models.Service) {
+	for _, host := range service.Hosts {
+		app.proxy.Target[host] = service.Name
+	}
+	app.config.SSL.Domains = app.proxy.GetDomains()
+	app.dcl.ReloadCerts(app.config.SSL)
+}
+
 func (app *application) RemoveService(service models.Service) {
 	for k, v := range app.proxy.Target {
 		if v == service.Name {

@@ -5,5 +5,5 @@ DSN = "file:delne.db"
 [SSL]
 Local = true
 Email = "haidous.m@gmail.com"
-CacheDir = "../letsencrypt"
+CacheDir = "/src/app/letsencrypt"
 Domains = ["delne.local", "foo.local"]
