@@ -14,6 +14,7 @@ import (
 	"github.com/BurntSushi/toml"
 	"github.com/foomo/simplecert"
 	"github.com/foomo/tlsconfig"
+	"github.com/haidousm/delne/internal/certloader"
 	"github.com/haidousm/delne/internal/docker"
 	"github.com/haidousm/delne/internal/models"
 	"github.com/haidousm/delne/internal/vcs"
@@ -21,19 +22,11 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type SSLConfig struct {
-	Local    bool
-	Email    string
-	CacheDir string
-
-	Domains []string
-}
-
 type config struct {
 	Env   string
 	Debug bool
 	DSN   string
-	SSL   SSLConfig
+	SSL   certloader.SSLConfig
 }
 
 type application struct {
@@ -41,6 +34,7 @@ type application struct {
 	logger  *slog.Logger
 	proxy   *Proxy
 	dClient *docker.Client
+	dcl     *certloader.DynamicCertLoader
 
 	images   models.ImageModelInterface
 	services models.ServiceModelInterface
@@ -99,6 +93,7 @@ func main() {
 		images:   &models.ImageModel{DB: db},
 		services: &models.ServiceModel{DB: db},
 		dClient:  dClient,
+		dcl:      &certloader.DynamicCertLoader{},
 	}
 
 	mux := http.NewServeMux()
@@ -138,18 +133,9 @@ func openDB(dsn string) (*sql.DB, error) {
 }
 
 func listenAndServeTLS(srv *http.Server, app *application) {
-
-	scCfg := simplecert.Default
-	scCfg.Local = app.config.SSL.Local
-
-	scCfg.SSLEmail = app.config.SSL.Email
-	scCfg.CacheDir = app.config.SSL.CacheDir
-
-	scCfg.Domains = app.config.SSL.Domains
-
-	certLoader, err := simplecert.Init(scCfg, nil)
+	err := app.dcl.ReloadCerts(app.config.SSL)
 	if err != nil {
-		log.Fatal("simplecert init failed: ", err)
+		log.Fatal("dynamic certloader init failed: ", err)
 	}
 
 	app.logger.Debug("starting redir from :80 to :443", "env", app.config.Env)
@@ -159,8 +145,9 @@ func listenAndServeTLS(srv *http.Server, app *application) {
 	}()
 
 	tlsconf := tlsconfig.NewServerTLSConfig(tlsconfig.TLSModeServerStrict)
-	tlsconf.GetCertificate = certLoader.GetCertificateFunc()
+	tlsconf.GetCertificate = app.dcl.GetCertificateFunc()
 	srv.TLSConfig = tlsconf
+
 	app.logger.Debug("starting server at :443", "env", app.config.Env)
 	go func() {
 		errChan <- srv.ListenAndServeTLS("", "")
