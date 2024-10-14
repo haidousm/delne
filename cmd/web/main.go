@@ -85,9 +85,7 @@ func main() {
 		config: cfg,
 		logger: logger,
 		proxy: &Proxy{
-			Target: map[string]string{
-				"foo.local/test": "http://localhost:8020",
-			},
+			Target:   map[string]string{},
 			RevProxy: make(map[string]*httputil.ReverseProxy),
 		},
 		images:   &models.ImageModel{DB: db},
