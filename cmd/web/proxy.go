@@ -42,7 +42,10 @@ func (app *application) AddTargetsFromService(service models.Service) {
 		app.proxy.Target[host] = service.Name
 	}
 	app.config.SSL.Domains = app.proxy.GetDomains()
-	app.dcl.ReloadCerts(app.config.SSL)
+
+	app.logger.Debug("reloading certs because domains changed", "domains", app.config.SSL.Domains)
+	err := app.dcl.ReloadCerts(app.config.SSL)
+	app.logger.Error("reloading certs failed", "err", err)
 }
 
 func (app *application) RemoveService(service models.Service) {
