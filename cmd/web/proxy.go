@@ -1,11 +1,14 @@
 package main
 
 import (
+	"context"
 	"errors"
+
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/haidousm/delne/internal/models"
@@ -60,10 +63,20 @@ func (app *application) AddTargetsFromService(service models.Service) {
 
 	app.config.SSL.Domains = app.proxy.GetDomains()
 	app.logger.Debug("reloading certs because domains changed", "domains", app.config.SSL.Domains)
-	err := app.dcl.ReloadCerts(app.config.SSL)
-	if err != nil {
-		app.logger.Error("reloading certs failed", "err", err)
+
+	ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer func() {
+		cancel()
+	}()
+	err := app.srv.Shutdown(ctxShutDown)
+	if err == http.ErrServerClosed {
+		app.logger.Debug("shutdown server for TLS renewal")
+	} else if err != nil {
+		app.logger.Error("shutting down server for TLS renewal failed", "err", err)
 	}
+
+	app.srv = MakeServer(app)
+	app.listenAndServeTLS()
 }
 
 func (app *application) RemoveService(service models.Service) {

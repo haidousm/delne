@@ -30,11 +30,15 @@ type config struct {
 }
 
 type application struct {
-	config  config
-	logger  *slog.Logger
-	proxy   *Proxy
+	config config
+	logger *slog.Logger
+
+	srv *http.Server
+	dcl *certloader.DynamicCertLoader
+
+	proxy *Proxy
+
 	dClient *docker.Client
-	dcl     *certloader.DynamicCertLoader
 
 	images   models.ImageModelInterface
 	services models.ServiceModelInterface
@@ -94,25 +98,28 @@ func main() {
 		dcl:      &certloader.DynamicCertLoader{},
 	}
 
+	app.srv = MakeServer(app)
+	// app.rebuildProxyFromDB()
+
+	app.listenAndServeTLS()
+	os.Exit(1)
+}
+
+func MakeServer(app *application) *http.Server {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/admin/", app.routes().ServeHTTP)
 	mux.HandleFunc("/", app.proxyRequest)
 
 	standardMiddleware := alice.New(app.recoverPanic, app.logRequest)
 
-	srv := &http.Server{
+	return &http.Server{
 		Addr:         fmt.Sprintf(":%d", 443),
 		Handler:      standardMiddleware.Then(mux),
 		IdleTimeout:  time.Minute,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
-		ErrorLog:     slog.NewLogLogger(logger.Handler(), slog.LevelError),
+		ErrorLog:     slog.NewLogLogger(app.logger.Handler(), slog.LevelError),
 	}
-
-	// app.rebuildProxyFromDB()
-
-	listenAndServeTLS(srv, app)
-	os.Exit(1)
 }
 
 func openDB(dsn string) (*sql.DB, error) {
@@ -130,7 +137,7 @@ func openDB(dsn string) (*sql.DB, error) {
 	return db, nil
 }
 
-func listenAndServeTLS(srv *http.Server, app *application) {
+func (app *application) listenAndServeTLS() {
 	err := app.dcl.ReloadCerts(app.config.SSL)
 	if err != nil {
 		log.Fatal("dynamic certloader init failed: ", err)
@@ -144,11 +151,11 @@ func listenAndServeTLS(srv *http.Server, app *application) {
 
 	tlsconf := tlsconfig.NewServerTLSConfig(tlsconfig.TLSModeServerStrict)
 	tlsconf.GetCertificate = app.dcl.GetCertificateFunc()
-	srv.TLSConfig = tlsconf
+	app.srv.TLSConfig = tlsconf
 
 	app.logger.Debug("starting server at :443", "env", app.config.Env)
 	go func() {
-		errChan <- srv.ListenAndServeTLS("", "")
+		errChan <- app.srv.ListenAndServeTLS("", "")
 	}()
 	log.Fatal(<-errChan)
 }
