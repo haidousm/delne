@@ -101,6 +101,7 @@ func main() {
 
 	app.srv = MakeServer(app)
 	app.rebuildProxyFromDB()
+	logger.Debug("Startup domains", "domains", app.config.SSL.Domains)
 
 	app.listenAndServeTLS()
 	os.Exit(1)
