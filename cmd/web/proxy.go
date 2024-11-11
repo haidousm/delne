@@ -185,7 +185,7 @@ func (app *application) rebuildProxyFromDB() {
 				break
 			}
 		}
-		go app.createContainerForService(service, image, true)
+		app.createContainerForService(service, image, true)
 	}
 	for _, domain := range app.proxy.GetDomains() {
 		app.config.SSL.Domains = append(app.config.SSL.Domains, domain)
