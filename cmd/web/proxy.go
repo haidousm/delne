@@ -1,14 +1,12 @@
 package main
 
 import (
-	"context"
 	"errors"
 
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
-	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/haidousm/delne/internal/models"
