@@ -56,27 +56,16 @@ func parseDomain(input string) string {
 	return domain
 }
 
-func (app *application) AddTargetsFromService(service models.Service) {
+func (app *application) AddTargetsFromService(service models.Service, isStartup bool) {
 	for _, host := range service.Hosts {
 		app.proxy.Target[host] = service.Name
 	}
 
-	app.config.SSL.Domains = app.proxy.GetDomains()
-	app.logger.Debug("reloading certs because domains changed", "domains", app.config.SSL.Domains)
-
-	ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer func() {
-		cancel()
-	}()
-	err := app.srv.Shutdown(ctxShutDown)
-	if err == http.ErrServerClosed {
-		app.logger.Debug("shutdown server for TLS renewal")
-	} else if err != nil {
-		app.logger.Error("shutting down server for TLS renewal failed", "err", err)
+	if isStartup {
+		app.logger.Debug("skipping server reload because this is startup buddy")
+	} else {
+		app.reloadServerBecauseOfCertChange()
 	}
-
-	app.srv = MakeServer(app)
-	app.listenAndServeTLS()
 }
 
 func (app *application) RemoveService(service models.Service) {
@@ -198,6 +187,7 @@ func (app *application) rebuildProxyFromDB() {
 				break
 			}
 		}
-		go app.createContainerForService(service, image)
+		go app.createContainerForService(service, image, true)
 	}
+	app.config.SSL.Domains = app.proxy.GetDomains()
 }

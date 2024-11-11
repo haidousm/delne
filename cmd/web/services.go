@@ -137,7 +137,7 @@ func (app *application) createService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go app.createContainerForService(&service, &imageObj)
+	go app.createContainerForService(&service, &imageObj, false)
 
 	onlyPartial := r.Header.Get("HX-Request") == "true"
 	if !onlyPartial {
@@ -272,7 +272,7 @@ func (app *application) stopService(w http.ResponseWriter, r *http.Request) {
 	component.Render(r.Context(), w)
 }
 
-func (app *application) createContainerForService(service *models.Service, image *models.Image) {
+func (app *application) createContainerForService(service *models.Service, image *models.Image, isStartup bool) {
 
 	resp, err := app.dClient.CreateContainer(*service, *image)
 
@@ -319,7 +319,7 @@ func (app *application) createContainerForService(service *models.Service, image
 	}
 
 	app.logger.Debug("started container", "id", resp.ID, "port", *service.Port)
-	app.AddTargetsFromService(*service)
+	app.AddTargetsFromService(*service, isStartup)
 }
 
 /**
@@ -385,7 +385,7 @@ func (app *application) updateService(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go app.createContainerForService(service, image)
+	go app.createContainerForService(service, image, false)
 	onlyPartial := r.Header.Get("HX-Request") == "true"
 	if !onlyPartial {
 		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)
@@ -450,7 +450,7 @@ func (app *application) deleteEnvVar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	go app.createContainerForService(service, image)
+	go app.createContainerForService(service, image, false)
 	onlyPartial := r.Header.Get("HX-Request") == "true"
 	if !onlyPartial {
 		http.Redirect(w, r, "/admin/services", http.StatusSeeOther)

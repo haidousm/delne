@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"flag"
 	"fmt"
@@ -99,7 +100,7 @@ func main() {
 	}
 
 	app.srv = MakeServer(app)
-	// app.rebuildProxyFromDB()
+	app.rebuildProxyFromDB()
 
 	app.listenAndServeTLS()
 	os.Exit(1)
@@ -158,4 +159,22 @@ func (app *application) listenAndServeTLS() {
 		errChan <- app.srv.ListenAndServeTLS("", "")
 	}()
 	log.Fatal(<-errChan)
+}
+func (app *application) reloadServerBecauseOfCertChange() {
+	app.config.SSL.Domains = app.proxy.GetDomains()
+	app.logger.Debug("reloading certs because domains changed", "domains", app.config.SSL.Domains)
+
+	ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer func() {
+		cancel()
+	}()
+	err := app.srv.Shutdown(ctxShutDown)
+	if err == http.ErrServerClosed {
+		app.logger.Debug("shutdown server for TLS renewal")
+	} else if err != nil {
+		app.logger.Error("shutting down server for TLS renewal failed", "err", err)
+	}
+
+	app.srv = MakeServer(app)
+	app.listenAndServeTLS()
 }
