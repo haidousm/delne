@@ -62,7 +62,11 @@ func (app *application) AddTargetsFromService(service models.Service, isStartup 
 	if isStartup {
 		app.logger.Debug("skipping server reload because this is startup buddy")
 	} else {
-		app.reloadServerBecauseOfCertChange()
+		app.config.SSL.Domains = app.proxy.GetDomains()
+		err := app.dcl.ReloadCerts(app.config.SSL)
+		if err != nil {
+			app.logger.Error("dynamic certloader init failed: ", err)
+		}
 	}
 }
 
